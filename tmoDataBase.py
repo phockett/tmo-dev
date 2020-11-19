@@ -22,7 +22,7 @@ from holoviews import opts
 hv.extension('bokeh', 'matplotlib')
 
 # Set some default plot options
-def setPlotDefaults(fSize = [800,600]):
+def setPlotDefaults(fSize = [800,400]):
     """Basic plot defaults"""
     opts.defaults(opts.Curve(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
                   opts.Image(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True))
@@ -210,7 +210,7 @@ class tmoDataBase():
         # Set outputs - NdOverlay, holomap and holomap layout.
         self.ndoverlay = hv.NdOverlay(overlayDict, kdims='Run') # .relabel(group='Runs',label=dim, depth=1)
         self.hmap = hv.HoloMap(self.ndoverlay)
-        self.layout = hv.HoloMap(self.ndoverlay).opts(height=300).layout().cols(1)
+        self.layout = hv.HoloMap(self.ndoverlay).layout().cols(1)  #.opts(height=300).layout().cols(1)  # opts here overrides defaults? Not sure why, just removed for now.
 
         if self.verbose['main']:
             print(f'Set self.ndoverlay, self.hmap and self.layout for dim={dim}.')
