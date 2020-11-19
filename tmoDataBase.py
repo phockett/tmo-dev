@@ -78,16 +78,25 @@ class tmoDataBase():
 
         # Additionally pull some useful metrics
         # Does h5py object already report some of this directly? Not sure.
+        self.runs['proc'] = []
+        self.runs['invalid'] = []
         for key in self.data.keys():
             self.data[key]['items'] = self.data[key]['raw'].keys()
             self.data[key]['dims'] = {item:self.data[key]['raw'][item].shape for item in self.data[key]['raw'].keys()}
 
             # Very basic IO check, if energies is missing dataset may be problematic?
+            # TODO: use unified dict or sets to check consistent dims over all datasets.
             if 'energies' not in self.data[key]['dims']:
-                print(f'*** WARNING: key {key} missing energies data.')
+                print(f'*** WARNING: key {key} missing energies data, will be skipped.')
+                self.runs['invalid'].append(key)
+            else:
+                self.runs['proc'].append(key)
 
         if self.verbose['main']:
             print(f"Read {len(self.data)} files.")
+            print(f"Good datasets: {self.runs['proc']}")
+            print(f"Invalid datasets: {self.runs['invalid']}")
+
 
     def filterData(self, filterOptions = {}, keys = None, dim = 'energies'):
         """
@@ -100,7 +109,7 @@ class tmoDataBase():
 
         # Default to all datasets
         if keys is None:
-            keys = self.data.keys()
+            keys = self.runs['proc']
 
         for key in keys:
 
@@ -128,7 +137,7 @@ class tmoDataBase():
         """
         # Default to all datasets
         if keys is None:
-            keys = self.data.keys()
+            keys = self.runs['proc']
 
         # Loop over all datasets
         curveDict = {}
@@ -187,7 +196,7 @@ class tmoDataBase():
 
         # Loop over all datasets
         overlayDict = {}
-        for key in self.data:
+        for key in self.runs['proc']:
             if 'curve' not in self.data[key].keys():
                 self.hist(dim=dim, keys=[key], **kwargs)
 
@@ -214,7 +223,7 @@ class tmoDataBase():
             self.filterData(filterOptions = filterOptions)
 
         # Loop over all datasets
-        for key in self.data:
+        for key in self.runs['proc']:
             # Initially assume mask can be used directly, but set to all True if not passed
             # Will likely want more flexibility here later
 #             if mask is None:
@@ -263,7 +272,7 @@ class tmoDataBase():
             self.filterData(filterOptions = filterOptions)
 
         # Loop over all datasets
-        for key in self.data:
+        for key in self.runs['proc']:
             # Initially assume mask can be used directly, but set to all True if not passed
             # Will likely want more flexibility here later
 #             if mask is None:
