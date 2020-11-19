@@ -164,8 +164,8 @@ class tmoDataBase():
             for i in np.arange(0,d0Range):
                 freq, edges = np.histogram(d0[:,i], bins)
 #                 curveDict[key][i] = hv.Curve((edges, freq), dim, 'count')
-                curveDict[key][f'{i} ({key})'] = hv.Curve((edges, freq), dim, 'count')  # Keep run label here for histOverlay, although might be neater way
-
+                # curveDict[key][f'{i} ({key})'] = hv.Curve((edges, freq), dim, 'count')  # Keep run label here for histOverlay, although might be neater way
+                curveDict[key][(key, i)] = hv.Curve((edges, freq), kdims=dim, vdims='count') # Try as tuples, see http://holoviews.org/reference/containers/bokeh/NdOverlay.html
 
 #             if 'curve' in self.data[key].keys():
 #                 self.data[key]['curve'][dim] = hv.HoloMap(curveDict)
@@ -173,9 +173,9 @@ class tmoDataBase():
 #                 self.data[key]['curve'] = {dim:hv.HoloMap(curveDict)}
 
             if 'curve' in self.data[key].keys():
-                self.data[key]['curve'][dim] = hv.NdOverlay(curveDict[key], kdims = 'channel')
+                self.data[key]['curve'][dim] = hv.NdOverlay(curveDict[key], kdims = ['Run', 'Channel'])
             else:
-                self.data[key]['curve'] = {dim:hv.NdOverlay(curveDict[key], kdims = 'channel')}
+                self.data[key]['curve'] = {dim:hv.NdOverlay(curveDict[key], kdims = ['Run', 'Channel'])}
 
 # Basic case for 1D vars
 #             frequencies, edges = np.histogram(d0, bins)
