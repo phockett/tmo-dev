@@ -1,3 +1,17 @@
+"""
+Class and method dev for SLAC TMO data (Run 18).
+
+Preprocessed data (h5py IO) + further processing + Holoviews.
+
+18/11/20 v0.0.1
+
+Paul Hockett
+
+https://github.com/phockett/tmo-dev
+
+"""
+
+
 import numpy as np
 from h5py import File
 from pathlib import Path
@@ -6,6 +20,13 @@ from pathlib import Path
 import holoviews as hv
 from holoviews import opts
 hv.extension('bokeh', 'matplotlib')
+
+# Set some default plot options
+def setPlotDefaults(fSize = [800,800]):
+    """Basic plot defaults"""
+    opts.defaults(opts.Curve(height=fSize[0], width=fSize[1], tools=['hover'], show_grid=True),
+                  opts.Image(colorbar=True, height=fSize[0], width=fSize[1], tools=['hover']))
+
 
 class tmoDataBase():
     """
@@ -22,7 +43,7 @@ class tmoDataBase():
 
     #TODO: histND & pyvista
     Pull run info from elog
-    FIGURE SIZE & DEFAULT OPTIONS
+    FIGURE SIZE & DEFAULT OPTIONS (NOW set above)
 
     """
 
