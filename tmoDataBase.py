@@ -1,3 +1,5 @@
+import numpy as np
+
 class tmoDataBase():
     """
     Very crude data handling & plotting class for TMO run 18 preprocessed data.
