@@ -271,7 +271,7 @@ class tmoDataBase():
             self.data[key]['hist2d']['layout'] = hv.HoloMap(hexDict[key], kdims = ['Run', 'Channel']).layout().cols(1)  #.opts(height=300).layout().cols(1)  # opts here overrides defaults? Not sure why, just removed for now.
 
         if self.verbose['main']:
-            print(f"Set self.data[key]['hist2d'] for dim={dim}.')
+            print(f"Set self.data[key]['hist2d'] for dim={dim}.")
 
 
 #         return hv.HoloMap(hexList, kdims = kdims)  # This doesn't work for nested case, but should be a work-around...?
