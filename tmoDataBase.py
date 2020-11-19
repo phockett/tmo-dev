@@ -113,10 +113,10 @@ class tmoDataBase():
 
         for key in keys:
 
-            # Set full mask = true, use passed dim ('energies' as default) to define datasize event dim 
+            # Set full mask = true, use passed dim ('energies' as default) to define datasize event dim
             mask = np.ones_like(self.data[key]['raw'][dim]).astype(bool)
             if len(mask.shape)>1:
-                mask = mask[0]
+                mask = mask[:,0]
 
             for item in filterOptions.keys():
 
