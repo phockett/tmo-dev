@@ -187,6 +187,8 @@ class tmoDataBase():
 #             else:
 #                 self.data[key]['curve'] = {dim:hv.Curve((edges, frequencies), dim, 'count')}
 
+        if self.verbose['main']:
+            print(f"Set self.data[key]['curve'] for dim={dim}.")
 
 
     def histOverlay(self, dim = None, **kwargs):
@@ -210,7 +212,7 @@ class tmoDataBase():
         self.hmap = hv.HoloMap(self.ndoverlay)
         self.layout = hv.HoloMap(self.ndoverlay).opts(height=300).layout().cols(1)
 
-        if verbose['main']:
+        if self.verbose['main']:
             print(f'Set self.ndoverlay, self.hmap and self.layout for dim={dim}.')
 
 
