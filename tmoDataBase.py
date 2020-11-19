@@ -1,4 +1,11 @@
 import numpy as np
+from h5py import File
+from pathlib import Path
+
+# HV imports
+import holoviews as hv
+from holoviews import opts
+hv.extension('bokeh', 'matplotlib')
 
 class tmoDataBase():
     """
