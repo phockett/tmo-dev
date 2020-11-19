@@ -61,6 +61,10 @@ class tmoDataBase():
             self.data[key]['items'] = self.data[key]['raw'].keys()
             self.data[key]['dims'] = {item:self.data[key]['raw'][item].shape for item in self.data[key]['raw'].keys()}
 
+            # Very basic IO check, if energies is missing dataset may be problematic?
+            if 'energies' not in self.data[key]['dims']:
+                print(f'*** WARNING: key {key} missing energies data.')
+
         if self.verbose['main']:
             print(f"Read {len(self.data)} files.")
 
