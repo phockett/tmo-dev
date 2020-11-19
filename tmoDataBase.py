@@ -22,10 +22,10 @@ from holoviews import opts
 hv.extension('bokeh', 'matplotlib')
 
 # Set some default plot options
-def setPlotDefaults(fSize = [800,800]):
+def setPlotDefaults(fSize = [800,600]):
     """Basic plot defaults"""
-    opts.defaults(opts.Curve(height=fSize[0], width=fSize[1], tools=['hover'], show_grid=True),
-                  opts.Image(colorbar=True, height=fSize[0], width=fSize[1], tools=['hover']))
+    opts.defaults(opts.Curve(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
+                  opts.Image(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True))
 
 
 class tmoDataBase():
@@ -167,6 +167,7 @@ class tmoDataBase():
                 # curveDict[key][f'{i} ({key})'] = hv.Curve((edges, freq), dim, 'count')  # Keep run label here for histOverlay, although might be neater way
                 curveDict[key][(key, i)] = hv.Curve((edges, freq), kdims=dim, vdims='count') # Try as tuples, see http://holoviews.org/reference/containers/bokeh/NdOverlay.html
 
+# TODO: consider best stacking here dict, holomap, ndoverlay...?
 #             if 'curve' in self.data[key].keys():
 #                 self.data[key]['curve'][dim] = hv.HoloMap(curveDict)
 #             else:
@@ -204,7 +205,13 @@ class tmoDataBase():
 
             overlayDict[key] = self.data[key]['curve'][dim]
 
-        self.ndoverlay = hv.NdOverlay(overlayDict, kdims='Run').relabel(group='Runs',label=dim, depth=1)
+        # Set outputs - NdOverlay, holomap and holomap layout.
+        self.ndoverlay = hv.NdOverlay(overlayDict, kdims='Run') # .relabel(group='Runs',label=dim, depth=1)
+        self.hmap = hv.HoloMap(self.ndoverlay)
+        self.layout = hv.HoloMap(self.ndoverlay).opts(height=300).layout().cols(1)
+
+        if verbose['main']:
+            print(f'Set self.ndoverlay, self.hmap and self.layout for dim={dim}.')
 
 
     def hist2d(self, dim = None, ref = None, filterOptions = None):
