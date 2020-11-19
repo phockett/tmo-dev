@@ -209,7 +209,9 @@ class tmoDataBase():
 
         # Set outputs - NdOverlay, holomap and holomap layout.
         self.ndoverlay = hv.NdOverlay(overlayDict, kdims='Run') # .relabel(group='Runs',label=dim, depth=1)
-        self.hmap = hv.HoloMap(self.ndoverlay)
+        self.hmap = hv.HoloMap(self.ndoverlay)  # This works in testing, but with data seems to keep multiple datasets in plot? Update issue?
+                                                # See http://holoviews.org/reference/containers/bokeh/NdOverlay.html
+                                                # TESTS: https://pswww.slac.stanford.edu/jupyterhub/user/phockett/notebooks/dev/classDemo_191120_dev_bk1.ipynb
         self.layout = hv.HoloMap(self.ndoverlay).layout().cols(1)  #.opts(height=300).layout().cols(1)  # opts here overrides defaults? Not sure why, just removed for now.
 
         if self.verbose['main']:
@@ -218,7 +220,7 @@ class tmoDataBase():
 
     def hist2d(self, dim = None, ref = None, filterOptions = None):
         """
-        Basic wrapper for hv.HexTiles for 2D histograms.
+        Basic wrapper for hv.HexTiles (http://holoviews.org/reference/elements/bokeh/HexTiles.html#elements-bokeh-gallery-hextiles) for 2D histograms.
 
         Pass dim = [dim0, dim1] for dims to map.
 
@@ -249,7 +251,7 @@ class tmoDataBase():
 
             # Check cols
             d1Range = 1
-            kdims = dim[1]
+            kdims = [dim[1]]
             if len(d1.shape)>1:
                 d1Range = d1.shape[1]
                 kdims.append(f'{dim[1]} col')
@@ -259,6 +261,9 @@ class tmoDataBase():
 
 
             self.data[key]['hist2d'] = hexDict[key]
+
+        if self.verbose['main']:
+            print(f"Set self.data[key]['hist2d'].")
 
 #         return hv.HoloMap(hexList, kdims = kdims)  # This doesn't work for nested case, but should be a work-around...?
 
