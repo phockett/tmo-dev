@@ -113,8 +113,10 @@ class tmoDataBase():
 
         for key in keys:
 
-            # Set full mask = true, use 'energies' to define datasize
+            # Set full mask = true, use passed dim ('energies' as default) to define datasize event dim 
             mask = np.ones_like(self.data[key]['raw'][dim]).astype(bool)
+            if len(mask.shape)>1:
+                mask = mask[0]
 
             for item in filterOptions.keys():
 
@@ -144,7 +146,7 @@ class tmoDataBase():
         for key in keys:
             # Check mask exists, set if not
             if 'mask' not in self.data[key].keys():
-                self.filterData(keys=[key], dim = dim)
+                self.filterData(keys=[key], dim = dim)  # Pass dim or use default here - issue with passing is additional dim checks required to avoid collapsing multidim data
 
             d0 = np.array(self.data[key]['raw'][dim])[self.data[key]['mask']]
 
