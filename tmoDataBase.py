@@ -68,7 +68,7 @@ class tmoDataBase():
         if self.verbose['main']:
             print(f"Read {len(self.data)} files.")
 
-    def filterData(self, filterOptions = {}, keys = None):
+    def filterData(self, filterOptions = {}, keys = None, dim = 'energies'):
         """
         Very basic filter/mask generation function.
 
@@ -84,7 +84,7 @@ class tmoDataBase():
         for key in keys:
 
             # Set full mask = true, use 'energies' to define datasize
-            mask = np.ones_like(self.data[key]['raw']['energies']).astype(bool)
+            mask = np.ones_like(self.data[key]['raw'][dim]).astype(bool)
 
             for item in filterOptions.keys():
 
@@ -100,7 +100,7 @@ class tmoDataBase():
             self.data[key]['mask'] = mask
 
 
-    def hist(self, dim = None, bins = 'auto', filterOptions = None, keys = None):
+    def hist(self, dim, bins = 'auto', filterOptions = None, keys = None):
         """
         Construct 1D histrograms using np.histogram.
 
@@ -114,7 +114,7 @@ class tmoDataBase():
         for key in keys:
             # Check mask exists, set if not
             if 'mask' not in self.data[key].keys():
-                self.filterData(keys=[key])
+                self.filterData(keys=[key], dim = dim)
 
             d0 = np.array(self.data[key]['raw'][dim])[self.data[key]['mask']]
 
