@@ -263,16 +263,15 @@ class tmoDataBase():
 
             self.data[key]['hist2d'] = hexDict[key]
 
-        # Set outputs - NdOverlay, holomap and holomap layout.
-        # self.ndoverlay = hv.NdOverlay(hexDict, kdims = ['Run', 'Channel']) # .relabel(group='Runs',label=dim, depth=1)
-        self.hmap = hv.HoloMap(hexDict, kdims = ['Run', 'Channel'])  # This works in testing, but with data seems to keep multiple datasets in plot? Update issue?
-                                                # See http://holoviews.org/reference/containers/bokeh/NdOverlay.html
-                                                # TESTS: https://pswww.slac.stanford.edu/jupyterhub/user/phockett/notebooks/dev/classDemo_191120_dev_bk1.ipynb
-        self.layout = hv.HoloMap(hexDict, kdims = ['Run', 'Channel']).layout().cols(1)  #.opts(height=300).layout().cols(1)  # opts here overrides defaults? Not sure why, just removed for now.
+            # Set outputs - NdOverlay, holomap and holomap layout.
+            # self.ndoverlay = hv.NdOverlay(hexDict, kdims = ['Run', 'Channel']) # .relabel(group='Runs',label=dim, depth=1)
+            self.data[key]['hist2d']['hmap'] = hv.HoloMap(hexDict[key], kdims = ['Run', 'Channel'])  # This works in testing, but with data seems to keep multiple datasets in plot? Update issue?
+                                                    # See http://holoviews.org/reference/containers/bokeh/NdOverlay.html
+                                                    # TESTS: https://pswww.slac.stanford.edu/jupyterhub/user/phockett/notebooks/dev/classDemo_191120_dev_bk1.ipynb
+            self.data[key]['hist2d']['layout'] = hv.HoloMap(hexDict[key], kdims = ['Run', 'Channel']).layout().cols(1)  #.opts(height=300).layout().cols(1)  # opts here overrides defaults? Not sure why, just removed for now.
 
         if self.verbose['main']:
-            print(f"Set self.data[key]['hist2d'].")
-            print(f'Set self.ndoverlay, self.hmap and self.layout for dim={dim}.')
+            print(f"Set self.data[key]['hist2d'] for dim={dim}.')
 
 
 #         return hv.HoloMap(hexList, kdims = kdims)  # This doesn't work for nested case, but should be a work-around...?
