@@ -268,7 +268,8 @@ class tmoDataBase():
             self.data[key]['hist2d']['hmap'] = hv.HoloMap(hexDict[key], kdims = ['Run', 'Channel'])  # This works in testing, but with data seems to keep multiple datasets in plot? Update issue?
                                                     # See http://holoviews.org/reference/containers/bokeh/NdOverlay.html
                                                     # TESTS: https://pswww.slac.stanford.edu/jupyterhub/user/phockett/notebooks/dev/classDemo_191120_dev_bk1.ipynb
-            self.data[key]['hist2d']['layout'] = hv.HoloMap(hexDict[key], kdims = ['Run', 'Channel']).layout().cols(1)  #.opts(height=300).layout().cols(1)  # opts here overrides defaults? Not sure why, just removed for now.
+            # This is currently throwing an error... no idea why!
+            # self.data[key]['hist2d']['layout'] = hv.HoloMap(hexDict[key], kdims = ['Run', 'Channel']).layout().cols(1)  #.opts(height=300).layout().cols(1)  # opts here overrides defaults? Not sure why, just removed for now.
 
         if self.verbose['main']:
             print(f"Set self.data[key]['hist2d'] for dim={dim}.")
