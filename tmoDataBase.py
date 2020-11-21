@@ -25,7 +25,7 @@ hv.extension('bokeh', 'matplotlib')
 def setPlotDefaults(fSize = [800,400]):
     """Basic plot defaults"""
     opts.defaults(opts.Curve(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
-                  opts.Image(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True),
+                  opts.Image(width=fSize[0], aspect='square', tools=['hover'], colorbar=True),   # Force square format for images (suitable for VMI)
                   opts.HexTiles(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True))
 
 
@@ -44,12 +44,14 @@ class tmoDataBase():
 
     #TODO: histND & pyvista
     Pull run info from elog
-    FIGURE SIZE & DEFAULT OPTIONS (NOW set above)
+    Support for raw data
+
 
     """
 
 
     __version__ = '0.0.1'
+    __notebook__ = self.isnotebook()
 
     def __init__(self, fileBase = None, ext = 'h5', runList = None, fileSchema=None, fileList=None, verbose = 1):
         # Set file properties
@@ -67,6 +69,7 @@ class tmoDataBase():
         if self.verbose['sub'] < 0:
             self.verbose['sub'] = 0
 
+#**** IO
     def readFiles(self):
         # Set data per run
         self.data = {}
@@ -98,14 +101,27 @@ class tmoDataBase():
             print(f"Good datasets: {self.runs['proc']}")
             print(f"Invalid datasets: {self.runs['invalid']}")
 
-
+#**** ANALYSIS
     def filterData(self, filterOptions = {}, keys = None, dim = 'energies'):
         """
         Very basic filter/mask generation function.
 
-        filterOptions: dict, containing {dim:values} to filter on.
+        filterOptions : dict, containing {dim:values} to filter on.
             Singular values are matched.
             Pairs of values as used as ranges.
+            For multidim parameter sets, specify which source column to use as 3rd parameter.
+
+        keys : list, optional, default = None
+            Datasets to process, defaults to self.runs['proc']
+
+        dim : str, optional, default = 'energies'
+            Data to use as template. Not usually required, unless multidim return and/or default data is missing.
+
+        TODO:
+
+        - More flexibility.
+        - Filter functions, e.g. saturated electron detector shots? ('xc' > 0).sum(axis = 1) <=1000 in this case I think.
+
         """
 
         # Default to all datasets
@@ -130,7 +146,74 @@ class tmoDataBase():
                 if len(filterOptions[item])==2:
                     mask *= (testData >= filterOptions[item][0]) & (testData <= filterOptions[item][1])
 
+                # Case for multidim testData
+                if len(filterOptions[item])==3:
+                    mask *= (testData[:,filterOptions[item]] >= filterOptions[item][0]) & (testData[:,filterOptions[item]] <= filterOptions[item][1])
+
             self.data[key]['mask'] = mask
+
+    # def checkDims(testArray):
+    #     """Check if array is 2D"""
+
+#**** PLOTTING STUFF
+
+    def isnotebook():
+    """
+    Check if code is running in Jupyter Notebook.
+
+    Taken verbatim from https://exceptionshub.com/how-can-i-check-if-code-is-executed-in-the-ipython-notebook.html
+    Might be a better/more robust way to do this?
+
+    """
+
+    try:
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            return True   # Jupyter notebook or qtconsole
+        elif shell == 'TerminalInteractiveShell':
+            return False  # Terminal running IPython
+        else:
+            return False  # Other type (?)
+    except NameError:
+        return False      # Probably standard Python interpreter
+
+
+    def showPlot(self, dim, run, pType='curve'):
+        """Render (show) specified plot from pre-set plot dictionaries (very basic!)."""
+
+        try:
+            if self.__notebook__:
+                display(self.data[run][pType][dim])  # If notebook, use display to push plot.
+            else:
+                return self.data[run][pType][dim]  # Otherwise return hv object.
+
+        except:
+            print(f'Plot [{run}][{pType}][{dim}] not set.')
+
+
+    def curvePlot(self, dim, filterOptions = None, keys = None):
+        """Basic wrapper for hv.Curve, currently assumes a 1D dataset, or will skip plot."""
+
+        # Default to first dataset
+        if keys is None:
+            keys = self.runs['proc'][0]
+
+
+        for key in keys:
+            # Check mask exists, set if not
+            if 'mask' not in self.data[key].keys():
+                self.filterData(keys=[key])
+
+            d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']]
+
+            try:
+                if self.__notebook__:
+                    display(hv.Curve(d0))  # If notebook, use display to push plot.
+                else:
+                    # return hv.Curve(d0)  # Otherwise return hv object.
+                    pass
+            except:
+                pass
 
 
     def hist(self, dim, bins = 'auto', filterOptions = None, keys = None):
@@ -152,6 +235,7 @@ class tmoDataBase():
             d0 = np.array(self.data[key]['raw'][dim])[self.data[key]['mask']]
 
             # Check cols, otherwise will be flatterned by np.histogram
+            # TODO: move to separate function, and use .ndim (OK for h5 and np arrays)
             d0Range = 1
             if len(d0.shape)>1:
                 d0Range = d0.shape[1]
@@ -309,17 +393,11 @@ class tmoDataBase():
                 self.filterData(keys=[key])
 
             # Note flatten or np.concatenate here to set to 1D, not sure if function matters as long as ordering consistent?
+            # Also, 1D mask selection will automatically flatten? This might be an issue for keeping track of channels?
+            # Should use numpy masked array...?
             d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']].flatten()
             d1 = np.array(self.data[key]['raw'][dim[1]])[self.data[key]['mask']].flatten()
 
-#             # Check cols
-#             d1Range = 1
-#             kdims = dim[1]
-#             if len(d1.shape)>1:
-#                 d1Range = d1.shape[1]
-#                 kdims.append(f'{dim[1]} col')
-
-#             hexList[key] = {i:hv.HexTiles((d0, d1), dim).opts(hexOpts) for i in np.arange(0,d1Range-1)}
 
             # Quick test with single image - should convert to multiple here?
             imDict[key] = hv.Image((np.histogram2d(d0,d1, bins = bins)[0]), dim) # for i in np.arange(0,d1Range)}
