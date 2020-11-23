@@ -28,6 +28,27 @@ def setPlotDefaults(fSize = [800,400]):
                   opts.Image(width=fSize[0], aspect='square', tools=['hover'], colorbar=True),   # Force square format for images (suitable for VMI)
                   opts.HexTiles(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True))
 
+def isnotebook():
+    """
+    Check if code is running in Jupyter Notebook.
+
+    Taken verbatim from https://exceptionshub.com/how-can-i-check-if-code-is-executed-in-the-ipython-notebook.html
+    Might be a better/more robust way to do this?
+
+    """
+
+    try:
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            return True   # Jupyter notebook or qtconsole
+        elif shell == 'TerminalInteractiveShell':
+            return False  # Terminal running IPython
+        else:
+            return False  # Other type (?)
+    except NameError:
+        return False      # Probably standard Python interpreter
+
+
 
 class tmoDataBase():
     """
@@ -194,27 +215,6 @@ class tmoDataBase():
     #     """Check if array is 2D"""
 
 #**** PLOTTING STUFF
-
-    def isnotebook():
-        """
-        Check if code is running in Jupyter Notebook.
-
-        Taken verbatim from https://exceptionshub.com/how-can-i-check-if-code-is-executed-in-the-ipython-notebook.html
-        Might be a better/more robust way to do this?
-
-        """
-
-        try:
-            shell = get_ipython().__class__.__name__
-            if shell == 'ZMQInteractiveShell':
-                return True   # Jupyter notebook or qtconsole
-            elif shell == 'TerminalInteractiveShell':
-                return False  # Terminal running IPython
-            else:
-                return False  # Other type (?)
-        except NameError:
-            return False      # Probably standard Python interpreter
-
 
     def showPlot(self, dim, run, pType='curve'):
         """Render (show) specified plot from pre-set plot dictionaries (very basic!)."""
