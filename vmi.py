@@ -14,7 +14,9 @@ https://github.com/phockett/tmo-dev
 
 # Dev code for new class
 # Inherit from base class, just add evmi functionality here
-class VMI(tmoDataBase):
+from scipy.ndimage import gaussian_filter
+
+class VMI(tb.tmoDataBase):
 
     def __init__(self, **kwargs):
         # Run __init__ from base class
@@ -42,14 +44,19 @@ class VMI(tmoDataBase):
 
         # Loop over filter sets and pass to base filterData() method.
         for key in self.filters.keys():
-            super().filterData(self, filterOptions = self.filters[key], keys = keys, dim = dim)
+#             print(self.filters[key])
+            super().filterData(filterOptions = self.filters[key], keys = keys, dim = dim)
 
             # Sort outputs to nested format
             # Note this leaves current settings in self.data[key]['mask']
             # These are STILL USED by histogram functions
             for runKey in keys:
+                if key not in self.data[runKey].keys():
+                    self.data[runKey][key] = {}  # Init
+
                 self.data[runKey][key]['mask'] = self.data[runKey]['mask'].copy()
                 self.data[runKey][key]['filter'] = self.filters[key]
+
 
     # 1st go... running, but very slow.
     # Would probably be faster to write this all for np.arrays, rather than using existing image2d.
@@ -100,9 +107,30 @@ class VMI(tmoDataBase):
                 self.eVMI['bgSub'][key] = hv.Image(self.eVMI['fullNorm'][key].data['z'] - self.eVMI['bgNorm'][key].data['z'])
 
 
+    def genVMIXmulti(self, filterOptions={}):
+        """Wrapper for genVMIX with multiple filter sets."""
+
+        if filterOptions is not None:
+            self.setFilter(filterOptions = filterOptions)
+
+        # Run genVMIX for each filter set
+        # Note bgSub = False to avoid recursive run in current form (v2), but should update this
+        for item in self.filters.keys():
+            if self.verbose['main']:
+                print(f'Generating VMI images for filters: {item}')
+
+            self.genVMIX(bgSub=False, name=item)
+
+
+
     # 2nd go, stack to Xarrays for processing
-    def genVMIX(self, bgSub=True, norm=True, keys=None, filterOptions={}, bins = (np.arange(0, 1048.1, 1)-0.5,)*2, **kwargs):
-        """Generate VMI images from event data, very basic Xarray version."""
+    def genVMIX(self, bgSub=True, norm=True, keys=None, filterOptions={},
+                bins = (np.arange(0, 1048.1, 1)-0.5,)*2, dim=['yc','xc'], name = 'imgStack', **kwargs):
+        """Generate VMI images from event data, very basic Xarray version.
+
+        v2: allow for multi-level filter via genVMIXmulti wrapper, changed to super() for filter.
+        v1: single filter set with hard-coded, recursive bg subtraction.
+        """
 
         # %%timeit
         # 18.8 s ± 63 ms per loop (mean ± std. dev. of 7 runs, 1 loop each) LW06, Runs 89 - 97 (good only)
@@ -113,6 +141,7 @@ class VMI(tmoDataBase):
 
         if filterOptions is not None:
             self.filterData(filterOptions = filterOptions)
+#             super().filterData(self, filterOptions = filterOptions)
 
         # Current method below (as per Elio's code). For LW06 run 89 tests (~70k shots, ~7M events)
         # Single shot: 1.88 s ± 15.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
@@ -123,7 +152,9 @@ class VMI(tmoDataBase):
 
         # Loop over all datasets
         imgArray = np.empty([bins[0].size-1, bins[1].size-1, len(keys)])  # Set empty array
-        norm = []
+        normVals = []
+        metrics = {'filterOptions':filterOptions.copy()}  # Log stuff to Xarray attrs
+
         for n, key in enumerate(keys):
             # Initially assume mask can be used directly, but set to all True if not passed
             # Will likely want more flexibility here later
@@ -133,6 +164,7 @@ class VMI(tmoDataBase):
             # Check mask exists, set if not
             if 'mask' not in self.data[key].keys():
                 self.filterData(keys=[key])
+#                 super().filterData(self,keys=[key])
 
             # Note flatten or np.concatenate here to set to 1D, not sure if function matters as long as ordering consistent?
             # Also, 1D mask selection will automatically flatten? This might be an issue for keeping track of channels?
@@ -143,24 +175,159 @@ class VMI(tmoDataBase):
             # Stack to np array
             imgArray[:,:,n] = np.histogram2d(d0,d1, bins = bins)[0]
 
-            norm.append(np.array(self.data[key]['raw']['gas']).sum()) # shots gas on
+            metrics[key] = {'shots':self.data[key]['raw'][dim[0]].shape,
+                            'selected':self.data[key]['mask'].sum(),
+                            'gas':np.array(self.data[key]['raw']['gas']).sum(),
+                            'events':d0.size}
+
+            normVals.append(self.data[key]['mask'].size) # shots selected - only for norm to no gas?
+
+            self.data[key][name]['metrics'] =  metrics[key].copy() # For mult filter case, push metrics to filter dict.
 
 #         return imgArray
         # Convert to Xarray
+#         imgStack = xr.DataArray(imgArray, dims=[dim[0],dim[1],'run'],
+#                                 coords={dim[0]:bins[0][0:-1], dim[1]:bins[1][0:-1], 'run':keys},
+#                                 name = 'imgStack')
+        # 2nd attempt, swap dim labels & reverse y-dir. This maintains orientation for image plots.
         imgStack = xr.DataArray(imgArray, dims=[dim[0],dim[1],'run'],
-                                coords={dim[0]:bins[0][0:-1], dim[1]:bins[1][0:-1], 'run':keys},
-                                name = 'imgStack')
+                                coords={dim[0]:bins[0][:-1], dim[1]:bins[1][-2::-1], 'run':keys},
+                                name = name)
 
-        imgStack['norm'] = ('run', norm)  # Store normalisation values
+        imgStack['norm'] = ('run', normVals)  # Store normalisation values
 
         if norm:
             imgStack = imgStack/imgStack['norm']
+            imgStack.name = name  # Propagate name! Division kills it
 
-        self.imgStack = imgStack  # May need .copy() here?
+        imgStack.attrs['metrics'] = metrics
 
         # Recursive call for bg calculation, but set bgSub=False
+        # CURRENTLY NOT WORKING - always get idential (BG only) results for both cases???
+        # As constructed ALWAYS assumes 1st call will have bgSub = True
+#         if bgSub:
+#             self.imgStack = imgStack.copy()  # May need .copy() here?
+#             filterOptions['gas'] = [False]  # Set bg as gas off, all other filter options identical
+#             self.genVMIX(bgSub=False, norm=norm, keys=keys, filterOptions=filterOptions, bins = bins, **kwargs)
+#         else:
+#             self.imgStackBG = imgStack.copy().rename('BG')
+
+        # Try keeping multiple results sets in stack instead.
+        # This is a little ugly, but working.
+        if not hasattr(self,'imgStack'):
+            # self.imgStack = []  # May need .copy() here?  # v1, set as list
+            self.imgStack = xr.Dataset()  # v2, set as xr.Dataset and append Xarrays to this
+
+#         self.imgStack.append(imgStack.copy())  # May need .copy() here?  # v1
+        self.imgStack[name] = imgStack  # v2 using xr.Dataset - NOTE THIS KILLS METRICS!
+                                        # TODO: push to main dict, or coord?
+
+
         if bgSub:
             filterOptions['gas'] = [False]  # Set bg as gas off, all other filter options identical
-            self.genVMIX(bgSub=False, norm=norm, keys=keys, filterOptions=filterOptions, bins = bins, **kwargs)
+            self.genVMIX(bgSub=False, norm=norm, name=name+'BG', keys=keys, filterOptions=filterOptions, bins = bins, **kwargs)
+#             self.imgStack.append((self.imgStack[-2] - self.imgStack[-1]).rename(name + 'BGsub'))  # Use last 2 img sets for subtraction
+            self.imgStack[name + 'BGsub'] = ((self.imgStack[name] - self.imgStack[name+'BG']).rename(name + 'BGsub'))
+
+        # Restack final output to NxNxm Xarray for easy manipulation/plotting.
+#         self.imgStack = self.imgStack.to_array(dim = 'type').rename('stacked')
+
+#     def imgStacksub(self)
+
+    # TODO: want to chain this for image plotting, but first set which array to use!
+    # TODO: options for which dataset to use, just hacked in duplicate code for now.
+    def restackVMIdataset(self):
+        # Restack image dataset to NxNxm Xarray for easy manipulation/plotting.
+        # Return rather than set internally...?
+
+        if hasattr(self, 'imgReduce'):
+        # Restack, note transpose to force new dim ('type') to end.
+            # This currently matters for smoothing function with scipy gaussian_filter.
+            imgReduce = self.imgReduce.to_array(dim = 'type').rename('stacked')
+            #.transpose('yc','xc','run','type')
+
+            # Send new dim to end
+            dimStack = imgReduce.dims
+        #         self.imgStack = self.imgStack.transpose(*dimStack[1:],dimStack[0])
+            return imgReduce.transpose(*dimStack[1:],dimStack[0])
+
         else:
-            self.imgStackBG = self.imgStack
+            # Restack, note transpose to force new dim ('type') to end.
+            # This currently matters for smoothing function with scipy gaussian_filter.
+            imgStack = self.imgStack.to_array(dim = 'type').rename('stacked')
+            #.transpose('yc','xc','run','type')
+
+            # Send new dim to end
+            dimStack = imgStack.dims
+        #         self.imgStack = self.imgStack.transpose(*dimStack[1:],dimStack[0])
+            return imgStack.transpose(*dimStack[1:],dimStack[0])
+
+
+    def downsample(self, step = [2,2], dims = ['xc','yc']):
+        """Wrapper for xr.coarsen to downsample images by step.
+
+        Set to trim boundaries, and sum over points. Coord system will be maintained.
+
+        This will work for Dataset or Dataarray forms.
+        Currently set to use smoothed dataset if available, or imgStack if not.
+
+        TODO: add some options here.
+        """
+
+        # v1 with list
+#         self.imgReduce = []
+
+#         for n, item in enumerate(self.imgStack):
+# #             print(n)
+#             self.imgReduce.append(item.coarsen({dim[0]:step[0], dim[1]:step[1]}, boundary="trim").sum())
+# #             self.imgReduce[n] = item.coarsen({dim[0]:step[0], dim[1]:step[1]}, boundary="trim", keep_attrs=True).sum()
+
+        # v2 with DataArray
+#         self.imgReduce = self.imgStack.coarsen({dims[0]:step[0], dims[1]:step[1]}, boundary="trim").sum()
+#         for item in ['imgStack', 'imgSmoothed']:
+        if hasattr(self, 'imgSmoothed'):
+            self.imgReduce = self.imgSmoothed.coarsen({d:s for (d,s) in zip(dims,step)}, boundary="trim").sum()
+        else:
+            self.imgReduce = self.imgStack.coarsen({d:s for (d,s) in zip(dims,step)}, boundary="trim").sum()
+
+
+    def smooth(self, sigma = [1,1]):
+    # Try using scipy.ndimage for smoothing...
+    # Can use xr.apply_ufunc for this.
+    # NOTE: this applies to ALL DIMS, so set 0 for additional stacking dims!
+    # NOTE: this currently assumes dim ordering (not checked by name)
+    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html
+
+    # smoothed = xr.apply_ufunc(gaussian_filter, imgReduce, 1)
+
+    # v1 for lists
+#         self.imgSmoothed = []
+
+#         # TODO: add options for which stack to smooth
+#         for item in enumerate(self.imgStack):
+#             self.imgSmoothed.append(xr.apply_ufunc(gaussian_filter, item, sigma))  # Final value is sigma [dim0,dim1...]
+
+        # v2 with DataArray
+        # Set any additional dims to zero
+        if len(sigma) != self.imgStack.ndims:
+            sigma = np.pad(sigma, [0, self.imgStack.ndims - len(sigma)])
+
+        self.imgSmoothed = (xr.apply_ufunc(gaussian_filter, self.imgStack, sigma))  # Final value is sigma [dim0,dim1...]
+
+#     def fastHist(self, dims = ['xc','yc'], bins = [1048,1048], nullEvent = -9999):
+#         """Generate 2D histogram via indexing. (Fast for small batches, but needs work for scale-up.)
+
+#         NOTE: currently set for electron images, 1048x1048 bins.
+#         To explore: see notes below!
+#         """
+
+#         hist2D = np.zeros(bins+2)  # Sized for 1-indexed bins, plus final cell for invalid hits.
+
+#         # Index method... WAY FASTER single shot (orders of magnitude on np.histogram2d), moderately faster (~30%) all shots (but should be able to improve with Numba?)
+#         # Lots of options here, for now use .flatten() to allow for np.delete below. Masking may be faster?
+#         d0 = np.array(self.data[key]['raw'][dims[0]]).astype(int).flatten()
+#         d1 = np.array(self.data[key]['raw'][dims[1]]).astype(int).flatten()
+
+#         #  easy way to drop -9999 "no hits"?
+#         d0 = np.delete(xhits, np.where(xhits == -9999))  # This only works for 1D case! May want to set NaNs instead?
+#         d1 = np.delete(yhits, np.where(yhits == -9999))
