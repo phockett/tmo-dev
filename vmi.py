@@ -54,8 +54,10 @@ class VMI(tb.tmoDataBase):
                 if key not in self.data[runKey].keys():
                     self.data[runKey][key] = {}  # Init
 
-                self.data[runKey][key]['mask'] = self.data[runKey]['mask'].copy()
-                self.data[runKey][key]['filter'] = self.filters[key]
+
+# REMOVED since it's confusing - will always leave last filter mask set!
+#                 self.data[runKey][key]['mask'] = self.data[runKey]['mask'].copy()
+#                 self.data[runKey][key]['filter'] = self.filters[key]
 
 
     # 1st go... running, but very slow.
@@ -119,7 +121,9 @@ class VMI(tb.tmoDataBase):
             if self.verbose['main']:
                 print(f'Generating VMI images for filters: {item}')
 
-            self.genVMIX(bgSub=False, name=item)
+            # Pass only single filter set here.
+            # Should change to avoid repetition of filtering.
+            self.genVMIX(bgSub=False, name=item, filterOptions = self.filters[item])
 
 
 
@@ -129,6 +133,10 @@ class VMI(tb.tmoDataBase):
         """Generate VMI images from event data, very basic Xarray version.
 
         v2: allow for multi-level filter via genVMIXmulti wrapper, changed to super() for filter.
+            TODO: clean this up, currently using a nasty mix of new and old functionality.
+                  Also issues with ordering of functions, and whether some dicts. are already set.
+                  (Should filter all, then genVMIX.)
+
         v1: single filter set with hard-coded, recursive bg subtraction.
         """
 
@@ -140,8 +148,9 @@ class VMI(tb.tmoDataBase):
             keys = self.runs['proc']
 
         if filterOptions is not None:
-            self.filterData(filterOptions = filterOptions)
-#             super().filterData(self, filterOptions = filterOptions)
+#             print(filterOptions)
+#             self.filterData(filterOptions = filterOptions)
+            super().filterData(filterOptions = filterOptions)  # Use super() for case of single filter set.
 
         # Current method below (as per Elio's code). For LW06 run 89 tests (~70k shots, ~7M events)
         # Single shot: 1.88 s ± 15.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
@@ -163,8 +172,8 @@ class VMI(tb.tmoDataBase):
 
             # Check mask exists, set if not
             if 'mask' not in self.data[key].keys():
-                self.filterData(keys=[key])
-#                 super().filterData(self,keys=[key])
+#                 self.filterData(keys=[key])
+                super().filterData(keys=[key])  # Use super() for case of single filter set.
 
             # Note flatten or np.concatenate here to set to 1D, not sure if function matters as long as ordering consistent?
             # Also, 1D mask selection will automatically flatten? This might be an issue for keeping track of channels?
@@ -182,7 +191,11 @@ class VMI(tb.tmoDataBase):
 
             normVals.append(self.data[key]['mask'].size) # shots selected - only for norm to no gas?
 
+            if name not in self.data[key].keys():
+                self.data[key][name] = {}
+
             self.data[key][name]['metrics'] =  metrics[key].copy() # For mult filter case, push metrics to filter dict.
+            self.data[key][name]['mask'] = self.data[key]['mask'].copy()
 
 #         return imgArray
         # Convert to Xarray
@@ -219,7 +232,7 @@ class VMI(tb.tmoDataBase):
             self.imgStack = xr.Dataset()  # v2, set as xr.Dataset and append Xarrays to this
 
 #         self.imgStack.append(imgStack.copy())  # May need .copy() here?  # v1
-        self.imgStack[name] = imgStack  # v2 using xr.Dataset - NOTE THIS KILLS METRICS!
+        self.imgStack[name] = imgStack.copy()  # v2 using xr.Dataset - NOTE THIS KILLS METRICS!
                                         # TODO: push to main dict, or coord?
 
 
