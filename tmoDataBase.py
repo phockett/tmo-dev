@@ -51,7 +51,7 @@ class tmoDataBase():
 
 
     __version__ = '0.0.1'
-    __notebook__ = self.isnotebook()
+    __notebook__ = isnotebook()
 
     def __init__(self, fileBase = None, ext = 'h5', runList = None, fileSchema=None, fileList=None, verbose = 1):
         # Set file properties
