@@ -193,18 +193,25 @@ class tmoDataBase():
 
             for item in filterOptions.keys():
 
-                testData = np.array(self.data[key]['raw'][item])
+                # For 'raw' data types
+                if item in self.data[key]['raw'].keys():
+                    testData = np.array(self.data[key]['raw'][item])
 
-                # Match single items
-                if len(filterOptions[item])==1:
-                    mask *= (testData == filterOptions[item])
+                    # Match single items
+                    if type(filterOptions[item]) is not list:
+                        filterOptions[item] = [filterOptions[item]]  # UGLY - wrap to list.
 
-                if len(filterOptions[item])==2:
-                    mask *= (testData >= filterOptions[item][0]) & (testData <= filterOptions[item][1])
+                    if len(filterOptions[item])==1:
+                        mask *= (testData == filterOptions[item])
 
-                # Case for multidim testData
-                if len(filterOptions[item])==3:
-                    mask *= (testData[:,filterOptions[item]] >= filterOptions[item][0]) & (testData[:,filterOptions[item]] <= filterOptions[item][1])
+                    if len(filterOptions[item])==2:
+                        mask *= (testData >= filterOptions[item][0]) & (testData <= filterOptions[item][1])
+
+                    # Case for multidim testData
+                    if len(filterOptions[item])==3:
+                        mask *= (testData[:,filterOptions[item]] >= filterOptions[item][0]) & (testData[:,filterOptions[item]] <= filterOptions[item][1])
+
+                # TODO: add other filter types here.
 
             self.data[key]['mask'] = mask  # For single filter this is OK, for multiples see vmi version.
 
