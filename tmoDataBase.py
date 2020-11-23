@@ -1,5 +1,5 @@
 """
-Class and method dev for SLAC TMO data (Run 18).
+Class and method dev for SLAC TMO data (Run 18) - base class (IO + basic analysis and plots).
 
 Preprocessed data (h5py IO) + further processing + Holoviews.
 
@@ -63,6 +63,7 @@ class tmoDataBase():
                      'files': {N:Path(fileBase, f'run{N}{fileSchema}.{ext}') for N in runList}
                      }
 
+
         # Set for main functions and subfunctions
         self.verbose = {'main':verbose, 'sub':verbose-1}
 
@@ -102,6 +103,40 @@ class tmoDataBase():
             print(f"Invalid datasets: {self.runs['invalid']}")
 
 #**** ANALYSIS
+    def setFilter(self, filterOptions = {}):
+        """
+         Master filter settings.
+
+        Now updated to
+        - maintain filter for multiple settings.
+        - update or replace existing filter.
+        - Set multiple filter types. (This is now set for image processing only in :py:class:`vmi`.)
+        - Set filter functions for derived data (e.g. total counts)
+
+        NOTE: Multilevel filter is now set for image processing only in :py:class:`vmi`.
+        Only the full multilevel filter is set here, for histogram functions pass options to method independently (for now).
+        This will set masks to self.data[key][filterName][mask], while old methods set self.data[key]['mask'].
+
+        """
+
+        # Loop over input filterOptions and set
+        for key,val in filterOptions.items():
+
+            # Add an item globally
+            if type(val) is not dict:
+                for masterKey in self.filters.keys():
+                    self.filters[masterKey][key] = val
+
+            # Add item to subset only
+            else:
+                for optKey, optVal in val.items():
+                    if key in self.filters.keys():
+                        self.filters[key][optKey] = optVal
+                    else:
+                        self.filters[key] = val  # Create new item from input dict.
+
+
+
     def filterData(self, filterOptions = {}, keys = None, dim = 'energies'):
         """
         Very basic filter/mask generation function.
@@ -150,7 +185,10 @@ class tmoDataBase():
                 if len(filterOptions[item])==3:
                     mask *= (testData[:,filterOptions[item]] >= filterOptions[item][0]) & (testData[:,filterOptions[item]] <= filterOptions[item][1])
 
-            self.data[key]['mask'] = mask
+            self.data[key]['mask'] = mask  # For single filter this is OK, for multiples see vmi version.
+
+
+
 
     # def checkDims(testArray):
     #     """Check if array is 2D"""
