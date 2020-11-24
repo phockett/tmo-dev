@@ -16,7 +16,7 @@ https://github.com/phockett/tmo-dev
 # Inherit from base class, just add evmi functionality here
 from scipy.ndimage import gaussian_filter
 
-class VMI(tb.tmoDataBase):
+class VMI(tmoDataBase):
 
     def __init__(self, **kwargs):
         # Run __init__ from base class
