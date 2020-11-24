@@ -14,6 +14,8 @@ https://github.com/phockett/tmo-dev
 # Dev code for new class
 # Inherit from base class, just add evmi functionality here
 import tmoDataBase as tb
+
+import xarray as xr
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
