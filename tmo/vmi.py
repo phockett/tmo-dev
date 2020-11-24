@@ -389,3 +389,38 @@ class VMI(tb.tmoDataBase):
         # Is this necessary as an option?
         if returnImg:
             return hvImg  # Otherwise return hv object.
+
+    def showImgSet(self, run = None, name = 'signal', clims = None, hist = True, dims = ['yc','xc'], returnImg = False):
+        """
+        Crude wrapper for hv.HoloMap for images - basically as per showImg(), but full map.
+
+        Note:
+        - dims = ['yc','xc'] by default, changing will flip image!
+        - Should add a dim check here for consistency.
+
+        """
+
+        # Check dims - TODO
+        # list(self.restackVMIdataset().coords.keys())
+
+        # Firstly set to an hv.Dataset
+        imgDS = hv.Dataset(self.restackVMIdataset())
+
+        # Then a HoloMap of images
+        hvImg = imgDS.to(hv.Image, kdims=dims).opts(colorbar=True)
+
+
+        if clims is not None:
+
+            hvImg = hvImg.redim.range(z=tuple(clims))
+
+        # Code from showPlot()
+        if self.__notebook__ and (not returnImg):
+            if hist:
+                display(hvImg.hist())  # If notebook, use display to push plot.
+            else:
+                display(hvImg)  # If notebook, use display to push plot.
+
+        # Is this necessary as an option?
+        if returnImg:
+            return hvImg  # Otherwise return hv object.
