@@ -11,6 +11,7 @@ https://github.com/phockett/tmo-dev
 
 """
 
+import tmoDataBase
 
 # Dev code for new class
 # Inherit from base class, just add evmi functionality here
