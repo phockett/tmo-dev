@@ -16,6 +16,8 @@ https://github.com/phockett/tmo-dev
 import tmoDataBase as tb
 
 import xarray as xr
+import holoviews as hv
+
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
