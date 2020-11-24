@@ -260,7 +260,7 @@ class VMI(tb.tmoDataBase):
         if hasattr(self, 'imgReduce'):
         # Restack, note transpose to force new dim ('type') to end.
             # This currently matters for smoothing function with scipy gaussian_filter.
-            imgReduce = self.imgReduce.to_array(dim = 'type').rename('stacked')
+            imgReduce = self.imgReduce.to_array(dim = 'name').rename('stacked')
             #.transpose('yc','xc','run','type')
 
             # Send new dim to end
@@ -271,7 +271,7 @@ class VMI(tb.tmoDataBase):
         else:
             # Restack, note transpose to force new dim ('type') to end.
             # This currently matters for smoothing function with scipy gaussian_filter.
-            imgStack = self.imgStack.to_array(dim = 'type').rename('stacked')
+            imgStack = self.imgStack.to_array(dim = 'name').rename('stacked')
             #.transpose('yc','xc','run','type')
 
             # Send new dim to end
@@ -314,6 +314,8 @@ class VMI(tb.tmoDataBase):
     # NOTE: this applies to ALL DIMS, so set 0 for additional stacking dims!
     # NOTE: this currently assumes dim ordering (not checked by name)
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html
+    #
+    # TODO: generalise to xr.Dataset http://xarray.pydata.org/en/stable/computation.html#math-with-datasets
 
     # smoothed = xr.apply_ufunc(gaussian_filter, imgReduce, 1)
 
@@ -348,3 +350,40 @@ class VMI(tb.tmoDataBase):
 #         #  easy way to drop -9999 "no hits"?
 #         d0 = np.delete(xhits, np.where(xhits == -9999))  # This only works for 1D case! May want to set NaNs instead?
 #         d1 = np.delete(yhits, np.where(yhits == -9999))
+
+
+#************* Plotting
+
+    def showImg(self, run = None, name = 'signal', clims = None, hist = True, dims = ['yc','xc'], returnImg = False):
+        """
+        Crude wrapper for hv.Image.
+
+        Note:
+        - dims = ['yc','xc'] by default, changing will flip image!
+        - Should add a dim check here for consistency.
+
+        """
+
+        # Default to first run if not set
+        if run is None:
+            run = self.imgStack['run'][0].data
+
+        # Check dims - TODO
+        # list(self.restackVMIdataset().coords.keys())
+
+        hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name), kdims = dims).opts(aspect='square')
+
+        if clims is not None:
+
+            hvImg = hvImg.redim.range(z=tuple(clims))
+
+        # Code from showPlot()
+        if self.__notebook__:
+            if hist:
+                display(hvImg.hist())  # If notebook, use display to push plot.
+            else:
+                display(hvImg)  # If notebook, use display to push plot.
+
+        # Is this necessary as an option?
+        if returnImg:
+            return hvImg  # Otherwise return hv object.
