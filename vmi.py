@@ -109,7 +109,7 @@ class VMI(tb.tmoDataBase):
                 self.eVMI['bgSub'][key] = hv.Image(self.eVMI['fullNorm'][key].data['z'] - self.eVMI['bgNorm'][key].data['z'])
 
 
-    def genVMIXmulti(self, filterOptions={}):
+    def genVMIXmulti(self, filterOptions={}, **kwargs):
         """Wrapper for genVMIX with multiple filter sets."""
 
         if filterOptions is not None:
@@ -123,7 +123,7 @@ class VMI(tb.tmoDataBase):
 
             # Pass only single filter set here.
             # Should change to avoid repetition of filtering.
-            self.genVMIX(bgSub=False, name=item, filterOptions = self.filters[item])
+            self.genVMIX(bgSub=False, name=item, filterOptions = self.filters[item], **kwargs)
 
 
 
@@ -187,7 +187,8 @@ class VMI(tb.tmoDataBase):
             metrics[key] = {'shots':self.data[key]['raw'][dim[0]].shape,
                             'selected':self.data[key]['mask'].sum(),
                             'gas':np.array(self.data[key]['raw']['gas']).sum(),
-                            'events':d0.size}
+                            'events':d0.size,
+                            'norm':self.data[key]['mask'].size}
 
             normVals.append(self.data[key]['mask'].size) # shots selected - only for norm to no gas?
 
