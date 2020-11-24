@@ -124,9 +124,9 @@ class tmoDataBase():
             print(f"Invalid datasets: {self.runs['invalid']}")
 
 #**** ANALYSIS
-    def setFilter(self, filterOptions = {}):
+    def setFilter(self, filterOptions = {}, reset = False):
         """
-         Master filter settings.
+        Master filter settings.
 
         Now updated to
         - maintain filter for multiple settings.
@@ -139,6 +139,9 @@ class tmoDataBase():
         This will set masks to self.data[key][filterName][mask], while old methods set self.data[key]['mask'].
 
         """
+        # Reset filter?
+        if reset:
+            self.filters = {}
 
         # Loop over input filterOptions and set
         for key,val in filterOptions.items():
