@@ -380,7 +380,7 @@ class VMI(tb.tmoDataBase):
             hvImg = hvImg.redim.range(z=tuple(clims))
 
         # Code from showPlot()
-        if self.__notebook__:
+        if self.__notebook__ and (not returnImg):
             if hist:
                 display(hvImg.hist())  # If notebook, use display to push plot.
             else:
