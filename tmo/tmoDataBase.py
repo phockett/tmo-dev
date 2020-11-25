@@ -208,20 +208,21 @@ class tmoDataBase():
         if keys is None:
             keys = self.runs['proc']
 
-        # Check dim exists
-        if dim not in self.data[key]['dims']:
-            # Missing dim, try defaults.
-            if 'gmd_energy' in self.data[key]['dims']:
-                dim = 'gmd_energy'
-            elif 'energies' in self.data[key]['dims']:
-                dim = 'energies'
-            else:
-                print(f"Missing dims for filtering: {dim}, and defaults not present.")
-
-                # if self.verbose['main']:
-                #     print(f"Reset )
-
         for key in keys:
+
+            # Check key/template dim exists
+            # TODO: make this better.
+            if dim not in self.data[key]['dims']:
+                # Missing dim, try defaults.
+                if 'gmd_energy' in self.data[key]['dims']:
+                    dim = 'gmd_energy'
+                elif 'energies' in self.data[key]['dims']:
+                    dim = 'energies'
+                else:
+                    print(f"Missing dims for filtering: {dim}, and defaults not present.")
+
+                    # if self.verbose['main']:
+                    #     print(f"Reset )
 
             # Set full mask = true, use passed dim ('energies' as default) to define datasize event dim
             mask = np.ones_like(self.data[key]['raw'][dim]).astype(bool)
