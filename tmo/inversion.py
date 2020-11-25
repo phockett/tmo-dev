@@ -34,13 +34,16 @@ def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
     cpImport = False
 
     # If pbasex is locally installed, this should just work...
-    try:
-        import pbasex
-        import quadrant
-        cpImport = True
+    if pbasexPath is None:
+        try:
+            import pbasex
+            import quadrant
 
-    except ImportError:
-        pass
+            cpImport = True
+            pbasexPath = Path(inspect.getfile(pbasex)).parent
+
+        except ImportError:
+            pass
 
     if pbasexPath is not None:
         try:
@@ -52,6 +55,7 @@ def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
             import quadrant
 
             cpImport = True
+
         except ImportError:
             pass
 
@@ -62,8 +66,15 @@ def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
         print(f'cpBasex import OK, checking for basis functions...')
 
     try:
-        gBasis = pbasex.loadG(Path(basisPath), make_images = imgFlag)
-        print(f'Found basis at {basisPath}.')
+        # if basisPath is None:
+        #     basisPath = pbasexPath  # This could work if files are parsed.
+
+        if basisPath is not None:
+            gBasis = pbasex.loadG(Path(basisPath), make_images = imgFlag)
+            print(f'Found basis at {basisPath}.')
+        else:
+            print('Basis file not set, please run importer again with basisPath=<gBasis file location>')
+
     except OSError:
         print(f'*** Failed to load basis from {basisPath}.')
 
