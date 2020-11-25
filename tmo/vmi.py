@@ -314,7 +314,7 @@ class VMI(tb.tmoDataBase):
         #     dims = self.data[key][name]['imgDims']
         if dims is None:
             # dims = self.data[run][name]['imgDims']  # Set dims
-            dims = list(data.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
+            dims = list(self.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
 
         # v1 with list
 #         self.imgReduce = []
@@ -397,7 +397,7 @@ class VMI(tb.tmoDataBase):
 
         if dims is None:
             # dims = self.data[run][name]['imgDims']  # Set dims
-            dims = list(data.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
+            dims = list(self.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
 
         if backend == 'xr':
             if log10:
@@ -448,7 +448,7 @@ class VMI(tb.tmoDataBase):
 
         if dims is None:
             # dims = self.data[run][name]['imgDims']  # Set dims
-            dims = list(data.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
+            dims = list(self.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
 
         # Firstly set to an hv.Dataset
         imgDS = hv.Dataset(self.restackVMIdataset())
