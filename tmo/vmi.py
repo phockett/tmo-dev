@@ -205,13 +205,13 @@ class VMI(tb.tmoDataBase):
 
 #         return imgArray
         # Convert to Xarray
-#         imgStack = xr.DataArray(imgArray, dims=[dim[0],dim[1],'run'],
-#                                 coords={dim[0]:bins[0][0:-1], dim[1]:bins[1][0:-1], 'run':keys},
-#                                 name = 'imgStack')
-        # 2nd attempt, swap dim labels & reverse y-dir. This maintains orientation for image plots.
         imgStack = xr.DataArray(imgArray, dims=[dim[0],dim[1],'run'],
-                                coords={dim[0]:bins[0][:-1], dim[1]:bins[1][-2::-1], 'run':keys},
+                                coords={dim[0]:bins[0][:-1], dim[1]:bins[1][:-1], 'run':keys},
                                 name = name)
+        # 2nd attempt, swap dim labels & reverse y-dir. This maintains orientation for image plots.
+        # imgStack = xr.DataArray(imgArray, dims=[dim[0],dim[1],'run'],
+        #                         coords={dim[0]:bins[0][:-1], dim[1]:bins[1][-2::-1], 'run':keys},
+        #                         name = name)
 
         imgStack['norm'] = ('run', normVals)  # Store normalisation values
 
