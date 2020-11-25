@@ -92,7 +92,20 @@ class tmoDataBase():
             self.verbose['sub'] = 0
 
 #**** IO
-    def readFiles(self):
+    def readFiles(self, keyDim = None):
+        """
+        Read (preprocessed) data from h5 files.
+
+        Parameters
+        ----------
+
+        keyDim : str, optional, default = None
+            If set, use this dim to check if data is valid.
+            Defaults to 'energies' or 'gmd_energy'.
+            Probably want to implement a more careful/thorough method here in future!
+
+        """
+
         # Set data per run
         self.data = {}
 
@@ -112,11 +125,19 @@ class tmoDataBase():
 
             # Very basic IO check, if energies is missing dataset may be problematic?
             # TODO: use unified dict or sets to check consistent dims over all datasets.
-            if 'energies' not in self.data[key]['dims']:
-                print(f'*** WARNING: key {key} missing energies data, will be skipped.')
-                self.runs['invalid'].append(key)
+            # 25/11/20: hacked in additional passed dim check, UGLY.
+            if keyDim is None:
+                if ('energies' not in self.data[key]['dims']) or ('gmd_energy' not in self.data[key]['dims']):
+                    print(f'*** WARNING: key {key} missing energies data, will be skipped.')
+                    self.runs['invalid'].append(key)
+                else:
+                    self.runs['proc'].append(key)
             else:
-                self.runs['proc'].append(key)
+                if keyDim not in self.data[key]['dims']:
+                    print(f'*** WARNING: key {key} missing {keyDim} data, will be skipped.')
+                    self.runs['invalid'].append(key)
+                else:
+                    self.runs['proc'].append(key)
 
         if self.verbose['main']:
             print(f"Read {len(self.data)} files.")
