@@ -128,13 +128,14 @@ class VMI(tb.tmoDataBase):
 
             # Pass only single filter set here.
             # Should change to avoid repetition of filtering.
-            self.genVMIX(bgSub=False, name=item, filterOptions = self.filters[item], **kwargs)
+            # self.genVMIX(bgSub=False, name=item, filterOptions = self.filters[item], **kwargs)
+            self.genVMIX(name=item, filterOptions = self.filters[item], **kwargs)
 
 
 
     # 2nd go, stack to Xarrays for processing
-    def genVMIX(self, bgSub=True, norm=True, keys=None, filterOptions={},
-                bins = (np.arange(0, 1048.1, 1)-0.5,)*2, dim=['yc','xc'], name = 'imgStack', **kwargs):
+    def genVMIX(self, norm=True, keys=None, filterOptions={},
+                bins = (np.arange(0, 1048.1, 1)-0.5,)*2, dim=['xc','yc'], name = 'imgStack', **kwargs):
         """Generate VMI images from event data, very basic Xarray version.
 
         v2: allow for multi-level filter via genVMIXmulti wrapper, changed to super() for filter.
@@ -143,6 +144,15 @@ class VMI(tb.tmoDataBase):
                   (Should filter all, then genVMIX.)
 
         v1: single filter set with hard-coded, recursive bg subtraction.
+
+        Parameters
+        ----------
+        norm : bool, default = True
+            Normalise images. Currently norm by shots only.
+            TODO: add options here.
+
+        
+
         """
 
         # %%timeit
@@ -241,12 +251,12 @@ class VMI(tb.tmoDataBase):
         self.imgStack[name] = imgStack.copy()  # v2 using xr.Dataset - NOTE THIS KILLS METRICS!
                                         # TODO: push to main dict, or coord?
 
-
-        if bgSub:
-            filterOptions['gas'] = [False]  # Set bg as gas off, all other filter options identical
-            self.genVMIX(bgSub=False, norm=norm, name=name+'BG', keys=keys, filterOptions=filterOptions, bins = bins, **kwargs)
-#             self.imgStack.append((self.imgStack[-2] - self.imgStack[-1]).rename(name + 'BGsub'))  # Use last 2 img sets for subtraction
-            self.imgStack[name + 'BGsub'] = ((self.imgStack[name] - self.imgStack[name+'BG']).rename(name + 'BGsub'))
+# DEPRECATED - now just loop over filtersets with genVMIXmulti()
+#         if bgSub:
+#             filterOptions['gas'] = [False]  # Set bg as gas off, all other filter options identical
+#             self.genVMIX(bgSub=False, norm=norm, name=name+'BG', keys=keys, filterOptions=filterOptions, bins = bins, **kwargs)
+# #             self.imgStack.append((self.imgStack[-2] - self.imgStack[-1]).rename(name + 'BGsub'))  # Use last 2 img sets for subtraction
+#             self.imgStack[name + 'BGsub'] = ((self.imgStack[name] - self.imgStack[name+'BG']).rename(name + 'BGsub'))
 
         # Restack final output to NxNxm Xarray for easy manipulation/plotting.
 #         self.imgStack = self.imgStack.to_array(dim = 'type').rename('stacked')
