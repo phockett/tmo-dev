@@ -127,7 +127,7 @@ class tmoDataBase():
             # TODO: use unified dict or sets to check consistent dims over all datasets.
             # 25/11/20: hacked in additional passed dim check, UGLY.
             if keyDim is None:
-                if ('energies' not in self.data[key]['dims']) or ('gmd_energy' not in self.data[key]['dims']):
+                if ('energies' not in self.data[key]['dims']) and ('gmd_energy' not in self.data[key]['dims']):
                     print(f'*** WARNING: key {key} missing energies data, will be skipped.')
                     self.runs['invalid'].append(key)
                 else:
