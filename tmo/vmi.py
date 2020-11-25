@@ -297,7 +297,7 @@ class VMI(tb.tmoDataBase):
             return imgStack.transpose(*dimStack[1:],dimStack[0])
 
 
-    def downsample(self, step = [2,2], dims = ['xc','yc']):
+    def downsample(self, step = [2,2], dims = None):
         """Wrapper for xr.coarsen to downsample images by step.
 
         Set to trim boundaries, and sum over points. Coord system will be maintained.
@@ -312,6 +312,9 @@ class VMI(tb.tmoDataBase):
         # TODO
         # if dims is None:
         #     dims = self.data[key][name]['imgDims']
+        if dims is None:
+            # dims = self.data[run][name]['imgDims']  # Set dims
+            dims = list(data.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
 
         # v1 with list
 #         self.imgReduce = []
@@ -376,47 +379,56 @@ class VMI(tb.tmoDataBase):
 
 #************* Plotting
 
-    def showImg(self, run = None, name = 'signal', clims = None, hist = True, dims = None, log10 = False, returnImg = False):
+    def showImg(self, run = None, name = 'signal', clims = None, hist = True, dims = None,
+                log10 = False, returnImg = False, backend = 'hv'):
         """
-        Crude wrapper for hv.Image.
+        Crude wrapper for hv.Image (or native Xarray plotter)
+
+        Set backend = 'hv' (default), or 'xr'.
 
         Note:
-        - dims = ['yc','xc'] by default, changing will flip image!
-        - Should add a dim check here for consistency.
+        - dims = ['yc','xc'] by default (now set from input Xarray) - changing will flip image!
 
         """
 
         # Default to first run if not set
         if run is None:
-            run = self.imgStack['run'][0].data
+            run = self.imgStack['run'][0].data.item()  # Force to single item
 
         if dims is None:
-            dims = self.data[run][name]['imgDims']  # Set dims
+            # dims = self.data[run][name]['imgDims']  # Set dims
+            dims = list(data.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
 
-        # Check dims - TODO
-        # list(self.restackVMIdataset().coords.keys())
-        if log10:
-            # log10 option - currently OK for .plot.imshow(), but doesn't cmap properly for hv if Nan/inf - need to check options here.
-            hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name).pipe(np.log10), kdims = dims).opts(aspect='square')
-        else:
-            hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name), kdims = dims).opts(aspect='square')
-
-        if clims is not None:
-
-            hvImg = hvImg.redim.range(z=tuple(clims))
-
-        # Code from showPlot()
-        if self.__notebook__ and (not returnImg):
-            if hist:
-                display(hvImg.hist())  # If notebook, use display to push plot.
+        if backend == 'xr':
+            if log10:
+                self.imgStack[name].sel(run=run).pipe(np.log10).plot.imshow()
             else:
-                display(hvImg)  # If notebook, use display to push plot.
+                self.imgStack[name].sel(run=run).plot.imshow()
 
-        # Is this necessary as an option?
-        if returnImg:
-            return hvImg  # Otherwise return hv object.
+        if backend == 'hv':
+            if log10:
+                # log10 option - currently OK for .plot.imshow(), but doesn't cmap properly for hv if Nan/inf - need to check options here.
+                hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name).pipe(np.log10), kdims = dims).opts(aspect='square')
+            else:
+                hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name), kdims = dims).opts(aspect='square')
 
-    def showImgSet(self, run = None, name = 'signal', clims = None, hist = True, dims = ['xc','yc'], returnImg = False):
+            if clims is not None:
+
+                hvImg = hvImg.redim.range(z=tuple(clims))
+
+            # Code from showPlot()
+            if self.__notebook__ and (not returnImg):
+                if hist:
+                    display(hvImg.hist())  # If notebook, use display to push plot.
+                else:
+                    display(hvImg)  # If notebook, use display to push plot.
+
+            # Is this necessary as an option?
+            if returnImg:
+                return hvImg  # Otherwise return hv object.
+
+
+    def showImgSet(self, run = None, name = 'signal', clims = None, hist = True, dims = None, returnImg = False):
         """
         Crude wrapper for hv.HoloMap for images - basically as per showImg(), but full map.
 
@@ -428,6 +440,15 @@ class VMI(tb.tmoDataBase):
 
         # Check dims - TODO
         # list(self.restackVMIdataset().coords.keys())
+
+        # Check image dims for kdims to pass.
+        # Default to first run if not set
+        # if run is None:
+        #     run = self.imgStack['run'][0].data.item()  # Force to single item
+
+        if dims is None:
+            # dims = self.data[run][name]['imgDims']  # Set dims
+            dims = list(data.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
 
         # Firstly set to an hv.Dataset
         imgDS = hv.Dataset(self.restackVMIdataset())
