@@ -151,7 +151,7 @@ class VMI(tb.tmoDataBase):
             Normalise images. Currently norm by shots only.
             TODO: add options here.
 
-        
+
 
         """
 
@@ -177,7 +177,7 @@ class VMI(tb.tmoDataBase):
         # Loop over all datasets
         imgArray = np.empty([bins[0].size-1, bins[1].size-1, len(keys)])  # Set empty array
         normVals = []
-        metrics = {'filterOptions':filterOptions.copy()}  # Log stuff to Xarray attrs
+        metrics = {'filterOptions':filterOptions.copy(), 'genDims'=dim}  # Log stuff to Xarray attrs
 
         for n, key in enumerate(keys):
             # Initially assume mask can be used directly, but set to all True if not passed
@@ -265,12 +265,16 @@ class VMI(tb.tmoDataBase):
 
     # TODO: want to chain this for image plotting, but first set which array to use!
     # TODO: options for which dataset to use, just hacked in duplicate code for now.
-    def restackVMIdataset(self):
+    def restackVMIdataset(self, reduce = True, step = [5,5]):
         # Restack image dataset to NxNxm Xarray for easy manipulation/plotting.
         # Return rather than set internally...?
 
-        if hasattr(self, 'imgReduce'):
-        # Restack, note transpose to force new dim ('type') to end.
+        if reduce:
+            if not hasattr(self, 'imgReduce'):
+                # Run default reduce if not set
+                self.downsample(step = step)
+
+            # Restack, note transpose to force new dim ('type') to end.
             # This currently matters for smoothing function with scipy gaussian_filter.
             imgReduce = self.imgReduce.to_array(dim = 'name').rename('stacked')
             #.transpose('yc','xc','run','type')
@@ -366,7 +370,7 @@ class VMI(tb.tmoDataBase):
 
 #************* Plotting
 
-    def showImg(self, run = None, name = 'signal', clims = None, hist = True, dims = ['yc','xc'], returnImg = False):
+    def showImg(self, run = None, name = 'signal', clims = None, hist = True, dims = ['yc','xc'], log10 = False, returnImg = False):
         """
         Crude wrapper for hv.Image.
 
@@ -382,8 +386,11 @@ class VMI(tb.tmoDataBase):
 
         # Check dims - TODO
         # list(self.restackVMIdataset().coords.keys())
-
-        hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name), kdims = dims).opts(aspect='square')
+        if log10:
+            # log10 option - currently OK for .plot.imshow(), but doesn't cmap properly for hv if Nan/inf - need to check options here.
+            hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name).pipe(np.log10), kdims = dims).opts(aspect='square')    
+        else:
+            hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name), kdims = dims).opts(aspect='square')
 
         if clims is not None:
 
