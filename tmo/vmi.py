@@ -177,7 +177,7 @@ class VMI(tb.tmoDataBase):
         # Loop over all datasets
         imgArray = np.empty([bins[0].size-1, bins[1].size-1, len(keys)])  # Set empty array
         normVals = []
-        metrics = {'filterOptions':filterOptions.copy(), 'genDims'=dim}  # Log stuff to Xarray attrs
+        metrics = {'filterOptions':filterOptions.copy()}  # Log stuff to Xarray attrs
 
         for n, key in enumerate(keys):
             # Initially assume mask can be used directly, but set to all True if not passed
@@ -212,6 +212,7 @@ class VMI(tb.tmoDataBase):
 
             self.data[key][name]['metrics'] =  metrics[key].copy() # For mult filter case, push metrics to filter dict.
             self.data[key][name]['mask'] = self.data[key]['mask'].copy()
+            self.data[key][name]['imgDims'] = dim  # Set for tracking dim shifts later/in plotting.
 
 #         return imgArray
         # Convert to Xarray
@@ -305,7 +306,12 @@ class VMI(tb.tmoDataBase):
         Currently set to use smoothed dataset if available, or imgStack if not.
 
         TODO: add some options here.
+        TODO: auto dim setting.
         """
+
+        # TODO
+        # if dims is None:
+        #     dims = self.data[key][name]['imgDims']
 
         # v1 with list
 #         self.imgReduce = []
@@ -370,7 +376,7 @@ class VMI(tb.tmoDataBase):
 
 #************* Plotting
 
-    def showImg(self, run = None, name = 'signal', clims = None, hist = True, dims = ['yc','xc'], log10 = False, returnImg = False):
+    def showImg(self, run = None, name = 'signal', clims = None, hist = True, dims = None, log10 = False, returnImg = False):
         """
         Crude wrapper for hv.Image.
 
@@ -384,11 +390,14 @@ class VMI(tb.tmoDataBase):
         if run is None:
             run = self.imgStack['run'][0].data
 
+        if dims is None:
+            dims = self.data[run][name]['imgDims']  # Set dims
+
         # Check dims - TODO
         # list(self.restackVMIdataset().coords.keys())
         if log10:
             # log10 option - currently OK for .plot.imshow(), but doesn't cmap properly for hv if Nan/inf - need to check options here.
-            hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name).pipe(np.log10), kdims = dims).opts(aspect='square')    
+            hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name).pipe(np.log10), kdims = dims).opts(aspect='square')
         else:
             hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name), kdims = dims).opts(aspect='square')
 
@@ -407,7 +416,7 @@ class VMI(tb.tmoDataBase):
         if returnImg:
             return hvImg  # Otherwise return hv object.
 
-    def showImgSet(self, run = None, name = 'signal', clims = None, hist = True, dims = ['yc','xc'], returnImg = False):
+    def showImgSet(self, run = None, name = 'signal', clims = None, hist = True, dims = ['xc','yc'], returnImg = False):
         """
         Crude wrapper for hv.HoloMap for images - basically as per showImg(), but full map.
 
