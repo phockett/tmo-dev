@@ -1,0 +1,70 @@
+"""
+Wrappers & methods for vmi image inversion.
+
+"""
+
+
+from pathlib import Path
+import sys
+
+# Set cpbasex imports
+# Imports adapted from Elio's code from tmolw0618/scratch/results/tmo_ana/elio/elec_pbasex.ipynb
+# Code adapted from similar method in ePSproc.orbPlot.importChemLabQC
+# This will import pbasex + helper functions if found
+
+def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
+    """
+    Import cpBasex & additional functions.
+
+    This is set as optional, and a local path can be defiened, since it may already be installed in local env., or in data processing location.
+
+    A different path can also be specified for the basis sets required.
+
+    Code:
+    - CPBASEX: https://github.com/e-champenois/CPBASEX
+    - Quadrant: https://github.com/e-champenois/quadrant
+    - Polar-Rebinning: https://github.com/e-champenois/Polar-Rebinning
+
+    For local install instructions, see https://github.com/e-champenois/CPBASEX#installation
+
+    To do: add more error parsing and logging, see, e.g., https://airbrake.io/blog/python-exception-handling/importerror-and-modulenotfounderror
+
+    """
+
+    cpImport = False
+
+    # If pbasex is locally installed, this should just work...
+    try:
+        import pbasex
+        import quadrant
+        cpImport = True
+
+    except ImportError:
+        pass
+
+    if pbasexPath is not None:
+        try:
+            # Load dev scripts - sidesteps issues with chemlab installation
+            sys.path.append(pbasexPath)
+
+            # Import from local dir, assuming both modules present for the moment
+            import pbasex
+            import quadrant
+
+            cpImport = True
+        except ImportError:
+            pass
+
+    if not cpImport:
+        print('cpBasex not found.')
+        return None
+    else:
+        print(f'cpBasex import OK, checking for basis functions...')
+
+    try:
+        gBasis = pbasex.loadG(Path(basisPath), make_images = imgFlag)
+        print(f'Found basis at {basisPath}.')
+    except OSError:
+        print(f'*** Failed to load basis from {basisPath}.')
+
+    return pbasex, quadrant, gBasis
