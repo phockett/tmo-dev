@@ -8,6 +8,8 @@ from pathlib import Path
 import sys
 import inspect
 
+import vmi as vmi
+
 # Set cpbasex imports
 # Imports adapted from Elio's code from tmolw0618/scratch/results/tmo_ana/elio/elec_pbasex.ipynb
 # Code adapted from similar method in ePSproc.orbPlot.importChemLabQC
@@ -79,4 +81,27 @@ def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
     except OSError:
         print(f'*** Failed to load basis from {basisPath}.')
 
-    return pbasex, quadrant, gBasis
+    return (pbasex, quadrant, gBasis)
+
+
+# Class to hold inversion methods.
+# Inherit from base VMI class.
+class VMIproc(vmi.VMI):
+
+    def __init__(self, method='cpbasex', **kwargs):
+        # Run __init__ from base class
+        super().__init__(**kwargs)
+
+        self.method = method
+
+    # Import specific method
+    def setMethod(**kwargs):
+        if self.method == 'cpbasex':
+            method = importCPBASEX(**kwargs)
+
+            # Unpack tuple if returned
+            if method is not None:
+                self.cp, self.qu, self.gBasis = method
+
+        else:
+            print(f'No method {self.method}.')
