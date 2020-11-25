@@ -6,6 +6,7 @@ Wrappers & methods for vmi image inversion.
 
 from pathlib import Path
 import sys
+import inspect
 
 # Set cpbasex imports
 # Imports adapted from Elio's code from tmolw0618/scratch/results/tmo_ana/elio/elec_pbasex.ipynb
