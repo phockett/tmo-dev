@@ -361,7 +361,7 @@ class VMIproc(vmi.VMI):
 
 
     # Similar to showImgSet code, but for spectral datasets [E,beta,run]
-    def plotSpectra(self, filterSet = 'signal', overlay = 'BLM', returnMap = True):
+    def plotSpectra(self, filterSet = 'signal', overlay = 'BLM', returnMap = False):
 
         # Firstly set to an hv.Dataset
         eSpecDS = hv.Dataset(self.proc[filterSet]['xr'])
