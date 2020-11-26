@@ -76,6 +76,7 @@ def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
             gBasis = pbasex.loadG(Path(basisPath), make_images = imgFlag)
             print(f'Found basis at {basisPath}.')
         else:
+            gBasis = None
             print('Basis file not set, please run importer again with basisPath=<gBasis file location>')
 
     except OSError:
