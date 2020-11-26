@@ -34,6 +34,10 @@ def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
 
     NOTE: in testing, some versions had issues with loading the basis functions - possibly a version mismatch issue? TBC.
 
+    For LW06 processing, setting local imports as follows is working:
+    `pbasexPath = '/reg/d/psdm/tmo/tmolw0618/results/modules/pbasex'`
+    `basisPath = '/reg/d/psdm/tmo/tmolw0618/scratch/results/tmo_ana/calc/G_r512_k128_l4.h5'`
+
     """
 
     cpImport = False
@@ -86,7 +90,7 @@ def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
         #     basisPath = pbasexPath  # This could work if files are parsed.
 
         if basisPath is not None:
-            gBasis = pbasex.loadG(Path(basisPath), make_images = imgFlag)
+            gBasis = pbasex.loadG(basisPath, make_images = imgFlag)
             print(f'Found basis at {basisPath}.')
         else:
             gBasis = None
