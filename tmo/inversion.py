@@ -32,6 +32,8 @@ def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
 
     To do: add more error parsing and logging, see, e.g., https://airbrake.io/blog/python-exception-handling/importerror-and-modulenotfounderror
 
+    NOTE: in testing, some versions had issues with loading the basis functions - possibly a version mismatch issue? TBC.
+
     """
 
     cpImport = False
@@ -43,15 +45,24 @@ def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
             import quadrant
 
             cpImport = True
-            pbasexPath = Path(inspect.getfile(pbasex)).parent
 
         except ImportError:
             pass
 
     if pbasexPath is not None:
         try:
-            # Load dev scripts - sidesteps issues with chemlab installation
-            sys.path.append(pbasexPath)
+            # Load specific version from path
+            # This might fail if there is also a version installed in the current environment
+            # sys.path.append(pbasexPath)
+            # Force to head of path to ensure local version loaded
+            sys.path.insert(0, pbasexPath)
+
+            # Optional - to force load from specific file location
+            # See https://stackoverflow.com/a/67692
+            # import importlib.util
+            # spec = importlib.util.spec_from_file_location('pbasex', '/reg/d/psdm/tmo/tmolw0618/results/modules/pbasex/pbasex.py')
+            # foo = importlib.util.module_from_spec(spec)
+
 
             # Import from local dir, assuming both modules present for the moment
             import pbasex
@@ -61,6 +72,8 @@ def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
 
         except ImportError:
             pass
+    # else:
+    #     pbasexPath = Path(inspect.getfile(pbasex)).parent.as_posix()
 
     if not cpImport:
         print('cpBasex not found.')
