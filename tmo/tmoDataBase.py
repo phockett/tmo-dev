@@ -22,10 +22,10 @@ from holoviews import opts
 hv.extension('bokeh', 'matplotlib')
 
 # Set some default plot options
-def setPlotDefaults(fSize = [800,400]):
+def setPlotDefaults(fSize = [800,400], imgSize = 500):
     """Basic plot defaults"""
     opts.defaults(opts.Curve(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
-                  opts.Image(width=fSize[0], aspect='square', tools=['hover'], colorbar=True),   # Force square format for images (suitable for VMI)
+                  opts.Image(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),   # Force square format for images (suitable for VMI)
                   opts.HexTiles(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True))
 
 def isnotebook():
