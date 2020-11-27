@@ -222,7 +222,7 @@ class VMI(tb.tmoDataBase):
 
             metrics[key] = {'shots':self.data[key]['raw'][dim[0]].shape,
                             'selected':self.data[key]['mask'].sum(),
-                            'gas':np.array(self.data[key]['raw']['gas']).sum(),
+                            # 'gas':np.array(self.data[key]['raw']['gas']).sum(),  # This doesn't exist in new datasets, just remove for now.
                             'events':d0.size,
                             'norm':self.data[key]['mask'].size}
 
