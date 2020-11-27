@@ -135,7 +135,8 @@ class VMI(tb.tmoDataBase):
 
     # 2nd go, stack to Xarrays for processing
     def genVMIX(self, norm=True, keys=None, filterOptions={},
-                bins = (np.arange(0, 1048.1, 1)-0.5,)*2, dim=['xc','yc'], name = 'imgStack', **kwargs):
+                bins = (np.arange(0, 1048.1, 1)-0.5,)*2, dim=['xc','yc'], name = 'imgStack',
+                bootstrap = False, lambdaP = 1.0, weights = None, density = None, **kwargs):
         """Generate VMI images from event data, very basic Xarray version.
 
         v2: allow for multi-level filter via genVMIXmulti wrapper, changed to super() for filter.
@@ -151,7 +152,17 @@ class VMI(tb.tmoDataBase):
             Normalise images. Currently norm by shots only.
             TODO: add options here.
 
+        bootstrap : bool, optional, default = False
+            If true, generate weights from Poission dist for bootstrap sampling using lambdaP parameter.
+            https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Poisson_bootstrap
+            (Alternatively, pass array weights)
 
+        weights, density : options parameters for binning with Numpy.histogram2d, implemented for bootstrapping routine.
+        https://numpy.org/devdocs/reference/generated/numpy.histogram2d.html#numpy.histogram2d
+
+        Notes
+        -----
+        This currently uses Numpy.histogram2d, should be able to implment faster methods here.
 
         """
 
@@ -166,6 +177,9 @@ class VMI(tb.tmoDataBase):
 #             print(filterOptions)
 #             self.filterData(filterOptions = filterOptions)
             super().filterData(filterOptions = filterOptions)  # Use super() for case of single filter set.
+
+        if bootstrap:
+            rng = np.random.default_rng()
 
         # Current method below (as per Elio's code). For LW06 run 89 tests (~70k shots, ~7M events)
         # Single shot: 1.88 s ± 15.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
@@ -196,8 +210,12 @@ class VMI(tb.tmoDataBase):
             d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']].flatten()
             d1 = np.array(self.data[key]['raw'][dim[1]])[self.data[key]['mask']].flatten()
 
-            # Stack to np array
-            imgArray[:,:,n] = np.histogram2d(d0,d1, bins = bins)[0]
+            # If bootstrapping, generate Poission weights of not passed
+            if bootstrap and (weights is None):
+                weights = rng.poisson(lambdaP, d0.size)
+
+            # Histogram and stack to np array
+            imgArray[:,:,n] = np.histogram2d(d0,d1, bins = bins, weights = weights, density = density)[0]
 
             metrics[key] = {'shots':self.data[key]['raw'][dim[0]].shape,
                             'selected':self.data[key]['mask'].sum(),
