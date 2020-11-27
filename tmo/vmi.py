@@ -178,8 +178,11 @@ class VMI(tb.tmoDataBase):
 #             self.filterData(filterOptions = filterOptions)
             super().filterData(filterOptions = filterOptions)  # Use super() for case of single filter set.
 
-        if bootstrap:
+        # For Poission bootstrap, weights will be generated for each dataset.
+        pFlag = False
+        if bootstrap and (weights is None):
             rng = np.random.default_rng()
+            pFlag = True
 
         # Current method below (as per Elio's code). For LW06 run 89 tests (~70k shots, ~7M events)
         # Single shot: 1.88 s ± 15.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
@@ -211,7 +214,7 @@ class VMI(tb.tmoDataBase):
             d1 = np.array(self.data[key]['raw'][dim[1]])[self.data[key]['mask']].flatten()
 
             # If bootstrapping, generate Poission weights of not passed
-            if bootstrap and (weights is None):
+            if pFlag:
                 weights = rng.poisson(lambdaP, d0.size)
 
             # Histogram and stack to np array
