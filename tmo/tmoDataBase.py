@@ -235,6 +235,15 @@ class tmoDataBase():
                 if item in self.data[key]['raw'].keys():
                     testData = np.array(self.data[key]['raw'][item])
 
+                    # 27/11/20 = quick hack for multidim col selection in v4 preprocessed data
+                    # Pass as dict with 'col', 'value' parameters
+                    # ACTUALY, multidim case below was OK, just had a bug!
+                    # if type(filterOptions[item]) is dict:
+                    #     col = filterOptions[item]['col']
+                    #     val = filterOptions[item]['val']
+                    #
+                    #     testData = testData[:,col]
+                    #
                     # Match single items
                     if type(filterOptions[item]) is not list:
                         filterOptions[item] = [filterOptions[item]]  # UGLY - wrap to list.
@@ -247,7 +256,7 @@ class tmoDataBase():
 
                     # Case for multidim testData
                     if len(filterOptions[item])==3:
-                        mask *= (testData[:,filterOptions[item]] >= filterOptions[item][0]) & (testData[:,filterOptions[item]] <= filterOptions[item][1])
+                        mask *= (testData[:,filterOptions[item][2]] >= filterOptions[item][0]) & (testData[:,filterOptions[item][2]] <= filterOptions[item][1])
 
                 # TODO: add other filter types here.
 
