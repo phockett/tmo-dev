@@ -490,9 +490,9 @@ class VMIproc(vmi.VMI):
         # Generate set of
         spreadDict = {}
         curveDict = {}
-        for run in statsXR['run']:
-            spreadDict.update({(BLM, run):hv.Spread(red.select(BLM=BLM, run = run), kdims=['E']) for BLM in statsXR['BLM']})
-            curveDict.update({(BLM, run):hv.Curve(red.select(BLM=BLM, run = run), kdims=['E']) for BLM in statsXR['BLM']})
+        for run in statsXR['run'].data:
+            spreadDict.update({(BLM, run):hv.Spread(red.select(BLM=BLM, run = run), kdims=['E']) for BLM in statsXR['BLM'].data})
+            curveDict.update({(BLM, run):hv.Curve(red.select(BLM=BLM, run = run), kdims=['E']) for BLM in statsXR['BLM'].data})
 
         hmap = (hv.HoloMap(spreadDict, kdims=['BLM','run']) * hv.HoloMap(curveDict, kdims=['BLM','run']))
 
