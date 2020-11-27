@@ -224,6 +224,19 @@ class VMIproc(vmi.VMI):
         rMask : optional, slice, default = slice(1,-1)
             Radial mask used for data norm. Default avoids centre spot.
 
+        Norm options set in a dictionary, default = {'type':'max', 'scope':'global'}
+
+        Currently the norm options are:
+
+        type:
+        - max
+        - sum
+        - raw
+
+        scope:
+        - global
+        - local
+
         """
 
         if (data is None) and (filterSet is None):
@@ -276,6 +289,7 @@ class VMIproc(vmi.VMI):
         - add smoothing option.
         - move defaults to self.<cpbasex options>
         - outputs to Xarray
+        - implement `quadrant.unfoldQuadrant` for full symmetrized images.
         """
 
 
@@ -394,6 +408,97 @@ class VMIproc(vmi.VMI):
                 display(hmap)  # If notebook, use display to push plot.
             else:
                 display(hmap.overlay(overlay))
+
+        # Is this necessary as an option?
+        if returnMap:
+            return hmap  # Otherwise return hv object.
+
+
+    def bootstrapInv(self, N = 5, lambdaP = 1.0, filterSet = None, sub = ['signal','bg']):
+        """
+        Basic bootstrap routine for VMI images & processing.
+
+        NOTE - this currently assumes that analysis setup is already completed.
+
+        NOTE - filterSet not yet fully implemented (in genVMIXmulti).
+
+        For method, see https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Poisson_bootstrap
+
+        TODO:
+        - parallelize.
+        - more options for additional processing/subtraction.
+        - stacking to existing array - currently just overwrites existing values.
+
+        """
+
+        # if not hasattr(self, 'stats'):
+        #     self.stats = xr.Dataset()  # Create empty dataset
+        self.stats = xr.Dataset()  # Create empty dataset
+
+        if self.verbose['main']:
+            print(f"*** Bootstrap run for N={N}, lambda={lambdaP}, filterSet={filterSet}")
+
+        # Repeat N analysis routines
+        for n in np.arange(0,N):
+
+            if self.verbose['main']:
+                print(f"Running set {n+1} of {N}")
+
+            # Generate VMI images with Poissionian weights (sampling)
+            self.genVMIXmulti(bootstrap = True, lambdaP = lambdaP)
+
+            # Subtract datasets, or other processing?
+            if sub is not None:
+                self.imgStack['sub'] = self.imgStack[sub[0]] - self.imgStack[sub[1]]
+
+            # Invert image set
+            self.inv(filterSet=filterSet)
+
+            # Restack results for run n
+            self.stats[n] = self.proc[filterSet]['xr'].copy()
+
+
+    def plotUncertainties(self, returnMap = False):
+        """
+        Quick hack for plotting spectra + uncertainties. Needs some work.
+        """
+
+        # Set XR dataarray and convert to Holoviews dataset
+        statsXR = self.stats.to_array().rename({'variable':'n'})
+        statsXR.name = 'IE'
+        statsHV = hv.Dataset(statsXR)[:,1:50,:]
+
+        # Set stats using HV functionality
+        red = statsHV.reduce('n', np.mean, spreadfn=np.std)  # Reduce works... but only for a single series?
+
+        # Manual stack for Spread + Curve objects
+        # http://holoviews.org/user_guide/Building_Composite_Objects.html
+
+        # ACTUALLY, doubly-nested dict more versatile (as used in main hist2d() function)
+        # hmap = hv.HoloMap(kdims='run')
+        #
+        # for run in statsXR['run']:
+        #     spreadDict = {2*i:hv.Spread(red.select(BLM=2*i, run = run), kdims=['E']) for i in range(0,3)}
+        #     curveDict = {2*i:hv.Curve(red.select(BLM=2*i, run = run), kdims=['E']) for i in range(0,3)}
+        #
+        # #     group[run] = [spreadDict,curveDict]
+        # #     (hv.HoloMap(spreadDict) * hv.HoloMap(curveDict)).overlay('Default')
+        #     nboverlay = hv.NdOverlay(spreadDict, kdims = 'BLM') * hv.NdOverlay(curveDict, kdims = 'BLM') #.relabel(group='run', label = str(run))
+        #
+        #     hmap[run] = nboverlay
+
+        # Generate set of
+        spreadDict = {}
+        curveDict = {}
+        for run in statsXR['run']:
+            spreadDict.update({(BLM, run):hv.Spread(red.select(BLM=BLM, run = run), kdims=['E']) for BLM in statsXR['BLM']})
+            curveDict.update({(BLM, run):hv.Curve(red.select(BLM=BLM, run = run), kdims=['E']) for BLM in statsXR['BLM']})
+
+        hmap = (hv.HoloMap(spreadDict, kdims=['BLM','run']) * hv.HoloMap(curveDict, kdims=['BLM','run']))
+
+        # Code from showPlot()
+        if self.__notebook__ and (not returnMap):
+            display(hmap)  # If notebook, use display to push plot.
 
         # Is this necessary as an option?
         if returnMap:
