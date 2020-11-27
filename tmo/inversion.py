@@ -131,6 +131,7 @@ class VMIproc(vmi.VMI):
 
         self.method = method
 
+
     # Import specific method
     def setMethod(self, **kwargs):
         if self.method == 'cpbasex':
@@ -142,6 +143,7 @@ class VMIproc(vmi.VMI):
 
         else:
             print(f'No method {self.method}.')
+
 
     # Set & check centre coods
     def setCentre(self, imgCentre = None, dims = None, filterSet = 'signal'):
@@ -180,6 +182,7 @@ class VMIproc(vmi.VMI):
 
     #         data.imgStack['signal'].xc[xInd]  # Can index INTO array with index.
 
+
     def checkCentre(self, nContour = 15, rMax = None, **kwargs):
         # Set circles
         def circle(radius):
@@ -205,7 +208,14 @@ class VMIproc(vmi.VMI):
 
     #     sampleStep = 2
     #     display(hv.Image(im[:sampleStep:-1,:sampleStep:-1]) * contours)
-        display(img.hist() * contours * point)
+        hplot = img.hist() * contours * point
+
+        # Code from showPlot()
+        if self.__notebook__:
+            display(hplot)
+        else:
+            return hplot
+
 
 
     def renorm(self, data = None, filterSet = None, norm={'type':'max', 'scope':'global'}, rMask = slice(1,-1)):
@@ -255,6 +265,7 @@ class VMIproc(vmi.VMI):
         # mask = data.proc['signal']['xr'].where(data.proc['signal']['xr']['XS'] > 1e-2) # Return values
         mask[rPix[0]:rPix[1]] = False  # Add pixel range
         self.proc[filterSet]['xr']['mask'] = mask
+
 
 
     def inv(self, filterSet = None, run = None, norm={'type':'max', 'scope':'global'}, step = [5,5],
@@ -362,6 +373,7 @@ class VMIproc(vmi.VMI):
 
         # Rerun downsample to update self.reduce dataset
         self.downsample(step = step)
+
 
 
     # Similar to showImgSet code, but for spectral datasets [E,beta,run]
