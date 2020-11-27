@@ -121,7 +121,7 @@ def importCPBASEX(pbasexPath = None, basisPath = None, imgFlag = True):
 # Inherit from base VMI class.
 class VMIproc(vmi.VMI):
 
-        def __init__(self, method='cpbasex', **kwargs):
+    def __init__(self, method='cpbasex', **kwargs):
         # Run __init__ from base class
         super().__init__(**kwargs)
 
