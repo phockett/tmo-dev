@@ -8,6 +8,10 @@ from pathlib import Path
 import sys
 import inspect
 
+import numpy as np
+import xarray as xr
+import holoviews as hv
+
 import vmi as vmi
 
 # Set cpbasex imports
