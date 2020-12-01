@@ -218,11 +218,13 @@ class VMIproc(vmi.VMI):
 
 
 
-    def renorm(self, data = None, filterSet = None, norm={'type':'max', 'scope':'global'}, rMask = slice(1,-1)):
+    def renorm(self, data = None, filterSet = None, norm={'type':'max', 'scope':'global'},
+                XSmin = None, rPix = None, eRange = None):
         """Ugly renorm routine by spectrum, needs some dim checking!
 
         rMask : optional, slice, default = slice(1,-1)
             Radial mask used for data norm. Default avoids centre spot.
+            NOTE: this is currently set by index (pixel).
 
         Norm options set in a dictionary, default = {'type':'max', 'scope':'global'}
 
@@ -241,27 +243,38 @@ class VMIproc(vmi.VMI):
 
         if (data is None) and (filterSet is None):
             # Default to 1st dataset
-            data = self.proc[self.proc.keys()[0]]['xr']
+            filterSet = self.proc.keys()[0]
+            data = self.proc[filterSet]['xr']
         elif data is None:
             data = self.proc[filterSet]['xr']
+
+        # Check masking & set if required
+        # TODO: fix UGLY logic
+        if (not hasattr(data, 'mask')) or (XSmin is not None) or (rPix is not None) or (eRange is not None):
+            self.setRmask(filterSet, XSmin = XSmin, rPix = rPix, eRange = eRange)
 
         # Reset values to raw
         data.attrs['normType'] = norm
         data[0,:,:] = data['XS'].copy()  # Reset to raw XS values
 
         if norm['type'] is 'max':
-            data['norm'] = ('run', data['XS'][rMask,:].max('E'))  # Store per run values
-            gVal = data['XS'][rMask,:].max()
+            # data['norm'] = ('run', data['XS'][rMask,:].max('E'))  # Store per run values
+            # gVal = data['XS'][rMask,:].max()
+            data['norm'] = data['XS'].where(data['mask']).max('E')  # With preset mask
+            gVal = data['norm'].max()
 
         elif norm['type'] is 'sum':
-            data['norm'] = ('run', data['XS'][rMask,:].sum('E'))
-            gVal = data['XS'][rMask,:].sum()
+            # data['norm'] = ('run', data['XS'][rMask,:].sum('E'))
+            # gVal = data['XS'][rMask,:].sum()
+            data['norm'] = data['XS'].where(data['mask']).sum('E')  # With preset mask
+            gVal = data['norm'].sum()
 
     #     elif norm['type'] is 'raw':
     #         data['norm'] = ('run', np.ones(data.run.size))
 
         else:
             data['norm'] = ('run', np.ones(data.run.size))
+            gVal = 1
 
         # Renorm B00 (intensities) per run or globally.
         if norm['scope'] is 'global':
@@ -272,21 +285,61 @@ class VMIproc(vmi.VMI):
 
 
 
-    def setRmask(self, filterSet, XSmin = 1e-3, rPix = [0, 5]):
-        """Set radial masking based on XS values and pixel range - VERY CRUDE, needs work."""
-        mask = (self.proc[filterSet]['xr']['XS'] > XSmin)  # Set mask per run, bool, currently will be set by (E, run)
+    def setRmask(self, filterSet, XSmin = 1e-2, rPix = [0,10], eRange = None):
+        """Set radial masking based on XS values and pixel range - VERY CRUDE, needs work.
+
+        Currently:
+
+        XSmin : XS threshold, default = 1e-2.
+        rPix : a pixel index range to mask out as a list, [rStart, rStop], default = [0,10]
+        eSlice : an energy range to KEEP as a list, [eStart, eStop], default = None
+
+        Note these are applied in order and the logic is additive.
+
+        TODO:
+        - add multiple ROI options.
+        - mask in or mask out.
+        - pass masks directly.
+        - threshold by abs or percentage value.
+
+        """
+
+        # Init mask based on XS, this has (E, run) dims.
+        if XSmin is not None:
+            mask = (self.proc[filterSet]['xr']['XS'] > XSmin)  # Set mask per run, bool, currently will be set by (E, run)
         # mask = data.proc['signal']['xr'].where(data.proc['signal']['xr']['XS'] > 1e-2) # Return values
-        mask[rPix[0]:rPix[1]] = False  # Add pixel range
+        else:
+            mask = self.proc[filterSet]['xr']['XS']
+
+        if rPix is not None:
+            # mask[rPix[0]:rPix[1]] = False  # Mask pixel range
+            mask = xr.where((mask['pixel']>rPix[0]) & (mask['pixel']<rPix[1]), False, mask) # Ensure size & dims consistent
+
+        if eRange is not None:
+            # self.proc[filterSet]['xr'].sel(E=slice(0.5,40))  # OK for subselecting
+            # mask = xr.where(mask.sel(E=slice(0.5,10)), True, False)  # Use this to modify inplace values
+            # mask = xr.where((mask['E']>eRange[0]) & (mask['E']<eRange[1]), True, False)  # Ensure size consistent
+            mask = xr.where((mask['E']>eRange[0]) & (mask['E']<eRange[1]), mask, False)  # Ensure size & dims consistent
+
         self.proc[filterSet]['xr']['mask'] = mask
 
 
 
     def inv(self, filterSet = None, run = None, norm={'type':'max', 'scope':'global'}, step = [5,5],
-            fold = True, quadFilter=[1, 1, 0, 0], basisR = 512, alpha=3.59e-4):
+            fold = True, quadFilter=[1, 1, 0, 0], basisR = 512, alpha=3.59e-4,
+            sigma = None):
         """Basic wrapper for pbasex + fold routine.
 
+        General options:
+        filterSet = None, run = None, norm={'type':'max', 'scope':'global'}, step = [5,5]
+
+        (sigma option for smoothing yet to be implemented.)
+
+        cpBasex options:
+        fold = True, quadFilter=[1, 1, 0, 0], basisR = 512, alpha=3.59e-4,
+
         TODO:
-        - add smoothing option.
+        - add smoothing option (need to propagate through restackVMIdataset() first)
         - move defaults to self.<cpbasex options>
         - outputs to Xarray
         - implement `quadrant.unfoldQuadrant` for full symmetrized images.
@@ -329,6 +382,8 @@ class VMIproc(vmi.VMI):
         procXR = IE.expand_dims({'BLM':[0]}).combine_first(betas)  # Direct combine to da
         procXR['XS'] = IE.copy()  # Set raw XS data too
     #     procXR['rMask'] = procXR['XS'].where()
+
+        procXR['pixel'] = ('E', np.arange(0, procXR['E'].size))  # Add pixel value index
 
         # Norm intensities - NOW SET IN SEPARATE FUNCTION
     #     procXR.attrs['normType'] = norm
@@ -391,16 +446,17 @@ class VMIproc(vmi.VMI):
 
 
     # Similar to showImgSet code, but for spectral datasets [E,beta,run]
-    def plotSpectra(self, filterSet = 'signal', overlay = 'BLM', returnMap = False, rMask = slice(0.3,-1)):
+    def plotSpectra(self, filterSet = 'signal', overlay = 'BLM', returnMap = False): # , rMask = slice(0.3,-1)):
 
         # Firstly set to an hv.Dataset
-        eSpecDS = hv.Dataset(self.proc[filterSet]['xr'])
+        eSpecDS = hv.Dataset(self.proc[filterSet]['xr'].where(self.proc[filterSet]['xr']['mask']))
 
         # Then a HoloMap of curves
         # Crude radial mask for plot (assumes dims)
         # NOTE - slicing for hv.Dataset is set by VALUE not index!
         # TODO: unify mask settings with setRmask()
-        hmap = eSpecDS[:,rMask,:].to(hv.Curve, kdims=['E'])
+        # hmap = eSpecDS[:,rMask,:].to(hv.Curve, kdims=['E'])  # Version with basic mask
+        hmap = eSpecDS.to(hv.Curve, kdims=['E'])
 
 
         # Code from showPlot()
@@ -468,6 +524,7 @@ class VMIproc(vmi.VMI):
         statsXR = self.stats.to_array().rename({'variable':'n'})
         statsXR.name = 'IE'
         statsHV = hv.Dataset(statsXR)[:,1:50,:]
+        # statsHV = hv.Dataset(statsXR.where(self.mask))  # TODO: set to mask here, need to check statsXR structure first!
 
         # Set stats using HV functionality
         red = statsHV.reduce('n', np.mean, spreadfn=np.std)  # Reduce works... but only for a single series?
