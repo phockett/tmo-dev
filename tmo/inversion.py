@@ -446,17 +446,30 @@ class VMIproc(vmi.VMI):
 
 
     # Similar to showImgSet code, but for spectral datasets [E,beta,run]
-    def plotSpectra(self, filterSet = 'signal', overlay = 'BLM', returnMap = False): # , rMask = slice(0.3,-1)):
+    def plotSpectra(self, filterSet = 'signal', overlay = 'BLM', returnMap = False, ePlot = None, useMask = True): # , rMask = slice(0.3,-1)):
+        """
+        Plot outputs from image inversion using Holoviews.
+
+        By default use the existing mask. Pass `useMask=False` to ignore. An energy plot range can also be set as ePlot=[eStart,eStop].
+        """
+
 
         # Firstly set to an hv.Dataset
-        eSpecDS = hv.Dataset(self.proc[filterSet]['xr'].where(self.proc[filterSet]['xr']['mask']))
+        if useMask:
+            eSpecDS = hv.Dataset(self.proc[filterSet]['xr'].where(self.proc[filterSet]['xr']['mask'], drop=True))
+        else:
+            eSpecDS = hv.Dataset(self.proc[filterSet]['xr'])
 
         # Then a HoloMap of curves
         # Crude radial mask for plot (assumes dims)
         # NOTE - slicing for hv.Dataset is set by VALUE not index!
         # TODO: unify mask settings with setRmask()
         # hmap = eSpecDS[:,rMask,:].to(hv.Curve, kdims=['E'])  # Version with basic mask
-        hmap = eSpecDS.to(hv.Curve, kdims=['E'])
+
+        if ePlot is not None:
+            hmap = eSpecDS[:,slice(ePlot[0],ePlot[1]),:].to(hv.Curve, kdims=['E'])  # Version with basic mask
+        else:
+            hmap = eSpecDS.to(hv.Curve, kdims=['E'])
 
 
         # Code from showPlot()
