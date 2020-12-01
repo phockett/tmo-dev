@@ -254,7 +254,7 @@ class VMIproc(vmi.VMI):
             gVal = data['XS'][rMask,:].max()
 
         elif norm['type'] is 'sum':
-            data['norm'] = ('run', data['XS'][:,rMask].sum('E'))
+            data['norm'] = ('run', data['XS'][rMask,:].sum('E'))
             gVal = data['XS'][rMask,:].sum()
 
     #     elif norm['type'] is 'raw':
@@ -391,15 +391,16 @@ class VMIproc(vmi.VMI):
 
 
     # Similar to showImgSet code, but for spectral datasets [E,beta,run]
-    def plotSpectra(self, filterSet = 'signal', overlay = 'BLM', returnMap = False):
+    def plotSpectra(self, filterSet = 'signal', overlay = 'BLM', returnMap = False, rMask = slice(0.3,-1)):
 
         # Firstly set to an hv.Dataset
         eSpecDS = hv.Dataset(self.proc[filterSet]['xr'])
 
         # Then a HoloMap of curves
         # Crude radial mask for plot (assumes dims)
+        # NOTE - slicing for hv.Dataset is set by VALUE not index!
         # TODO: unify mask settings with setRmask()
-        hmap = eSpecDS[:,1:50,:].to(hv.Curve, kdims=['E'])
+        hmap = eSpecDS[:,rMask,:].to(hv.Curve, kdims=['E'])
 
 
         # Code from showPlot()
