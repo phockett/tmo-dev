@@ -272,9 +272,9 @@ class VMIproc(vmi.VMI):
 
 
 
-    def setRmask(self, filterSet, XSmin = 1e-3, rPix = [1, -1]):
+    def setRmask(self, filterSet, XSmin = 1e-3, rPix = [0, 5]):
         """Set radial masking based on XS values and pixel range - VERY CRUDE, needs work."""
-        mask = (self.proc[filterSet]['xr']['XS'] > XSmin)  # Set mask per run, bool
+        mask = (self.proc[filterSet]['xr']['XS'] > XSmin)  # Set mask per run, bool, currently will be set by (E, run)
         # mask = data.proc['signal']['xr'].where(data.proc['signal']['xr']['XS'] > 1e-2) # Return values
         mask[rPix[0]:rPix[1]] = False  # Add pixel range
         self.proc[filterSet]['xr']['mask'] = mask
