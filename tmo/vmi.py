@@ -292,9 +292,13 @@ class VMI(tb.tmoDataBase):
         # Return rather than set internally...?
 
         if reduce:
-            if not hasattr(self, 'imgReduce'):
-                # Run default reduce if not set
-                self.downsample(step = step)
+            # if not hasattr(self, 'imgReduce'):
+            #     # Run default reduce if not set
+            #     self.downsample(step = step)
+
+            # For ease-of-use, just always run this! Prevents issues when new imgStack items are added.
+            self.downsample(step = step)
+
 
             # Restack, note transpose to force new dim ('type') to end.
             # This currently matters for smoothing function with scipy gaussian_filter.
