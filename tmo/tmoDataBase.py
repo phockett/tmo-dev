@@ -112,32 +112,41 @@ class tmoDataBase():
         # Set h5 file object - should just be file pointers (?)
         # Yep, OK, returns items <HDF5 file "run93_preproc_elecv2.h5" (mode r)>
         # No mem usage (checked with %memit, https://timothymonteath.com/articles/monitoring_memory_usage/)
+        # 02/12/20: added basic try/except here to skip missing files.
         for key in self.runs['files'].keys():
-            self.data[key] = {'raw':File(self.runs['files'][key])}
+            try:
+                self.data[key] = {'raw':File(self.runs['files'][key])}
+            except OSError:
+                self.data[key] = None
+
 
         # Additionally pull some useful metrics
         # Does h5py object already report some of this directly? Not sure.
         self.runs['proc'] = []
         self.runs['invalid'] = []
         for key in self.data.keys():
-            self.data[key]['items'] = self.data[key]['raw'].keys()
-            self.data[key]['dims'] = {item:self.data[key]['raw'][item].shape for item in self.data[key]['raw'].keys()}
+            if self.data[key] is not None:
+                self.data[key]['items'] = self.data[key]['raw'].keys()
+                self.data[key]['dims'] = {item:self.data[key]['raw'][item].shape for item in self.data[key]['raw'].keys()}
 
-            # Very basic IO check, if energies is missing dataset may be problematic?
-            # TODO: use unified dict or sets to check consistent dims over all datasets.
-            # 25/11/20: hacked in additional passed dim check, UGLY.
-            if keyDim is None:
-                if ('energies' not in self.data[key]['dims']) and ('gmd_energy' not in self.data[key]['dims']):
-                    print(f'*** WARNING: key {key} missing energies data, will be skipped.')
-                    self.runs['invalid'].append(key)
+                # Very basic IO check, if energies is missing dataset may be problematic?
+                # TODO: use unified dict or sets to check consistent dims over all datasets.
+                # 25/11/20: hacked in additional passed dim check, UGLY.
+                if keyDim is None:
+                    if ('energies' not in self.data[key]['dims']) and ('gmd_energy' not in self.data[key]['dims']):
+                        print(f'*** WARNING: key {key} missing energies data, will be skipped.')
+                        self.runs['invalid'].append(key)
+                    else:
+                        self.runs['proc'].append(key)
                 else:
-                    self.runs['proc'].append(key)
+                    if keyDim not in self.data[key]['dims']:
+                        print(f'*** WARNING: key {key} missing {keyDim} data, will be skipped.')
+                        self.runs['invalid'].append(key)
+                    else:
+                        self.runs['proc'].append(key)
             else:
-                if keyDim not in self.data[key]['dims']:
-                    print(f'*** WARNING: key {key} missing {keyDim} data, will be skipped.')
-                    self.runs['invalid'].append(key)
-                else:
-                    self.runs['proc'].append(key)
+                print(f'*** WARNING: key {key} file missing, will be skipped.')
+                self.runs['invalid'].append(key)
 
         if self.verbose['main']:
             print(f"Read {len(self.data)} files.")
