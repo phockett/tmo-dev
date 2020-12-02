@@ -65,53 +65,53 @@ class VMI(tb.tmoDataBase):
 #                 self.data[runKey][key]['filter'] = self.filters[key]
 
 
-    # 1st go... running, but very slow.
-    # Would probably be faster to write this all for np.arrays, rather than using existing image2d.
-    def genVMI(self, bgSub=True, norm=True, keys=None, filterOptions={}, **kwargs):
-        """Generate VMI images from event data, very basic hv.Image version."""
-#         Quick test for run 89 - looks to be working, different images for each case.
-
-#         Need to improve:
-
-#         - Cmapping (maybe log10?)
-#         - Image processing, use gaussian kernel?
-#         - Move to Xarray dataset image stack for more advanced/careful processing...?
-
-# %%timeit
-# 24.3 s ± 370 ms per loop (mean ± std. dev. of 7 runs, 1 loop each) LW06, Runs 89 - 97 (good only)
-
-        # Default to all datasets
-        if keys is None:
-            keys = self.runs['proc']
-
-        # Use existing image2d to generate images.
-        # This is possibly a bit slow, may be faster to rewrite 2D hist code (see old CIS codes for fast methods)
-        self.image2d(dim=['xc','yc'], filterOptions=filterOptions)  # keys=keys,
-
-        # Restack
-        self.eVMI = {'full':{}, 'fullNorm':{}, 'bg':{}, 'bgNorm':{}, 'bgSub':{}}  # Define output dicts
-        for key in keys:
-            self.eVMI['full'][key] = self.data[key]['img']
-
-            # Norm by no. events with gas.
-            # May want to norm by other factors too?
-            self.eVMI['fullNorm'][key] = self.data[key]['img'].transform(z=hv.dim('z')/np.array(self.data[key]['raw']['gas']).sum())
-
-        # Background images - assumed to be same filter(s) but gas off
-        # NOTE: MAY NEED TO USE EXPLICT .copy() here? TBC
-        if bgSub:
-            filterOptions['gas'] = [False]  # Hard coded for now, should allow passing for more flexibility
-            self.image2d(dim=['xc','yc'], filterOptions=filterOptions)  # keys=keys,
-
-            for key in keys:
-                self.eVMI['bg'][key] = self.data[key]['img']
-                self.eVMI['bgNorm'][key] = self.data[key]['img'].transform(z=hv.dim('z')/(~np.array(vmi.data[key]['raw']['gas']).astype(bool)).sum())
-
-                # Direct data manipulation OK, returns numpy.ndarray
-                # Seems easiest way to go for now.
-                # But might be better with hv.transform methods?
-                # Didn't need dim in testing... but did here. Odd!
-                self.eVMI['bgSub'][key] = hv.Image(self.eVMI['fullNorm'][key].data['z'] - self.eVMI['bgNorm'][key].data['z'])
+#     # 1st go... running, but very slow.
+#     # Would probably be faster to write this all for np.arrays, rather than using existing image2d.
+#     def genVMI(self, bgSub=True, norm=True, keys=None, filterOptions={}, **kwargs):
+#         """Generate VMI images from event data, very basic hv.Image version."""
+# #         Quick test for run 89 - looks to be working, different images for each case.
+#
+# #         Need to improve:
+#
+# #         - Cmapping (maybe log10?)
+# #         - Image processing, use gaussian kernel?
+# #         - Move to Xarray dataset image stack for more advanced/careful processing...?
+#
+# # %%timeit
+# # 24.3 s ± 370 ms per loop (mean ± std. dev. of 7 runs, 1 loop each) LW06, Runs 89 - 97 (good only)
+#
+#         # Default to all datasets
+#         if keys is None:
+#             keys = self.runs['proc']
+#
+#         # Use existing image2d to generate images.
+#         # This is possibly a bit slow, may be faster to rewrite 2D hist code (see old CIS codes for fast methods)
+#         self.image2d(dim=['xc','yc'], filterOptions=filterOptions)  # keys=keys,
+#
+#         # Restack
+#         self.eVMI = {'full':{}, 'fullNorm':{}, 'bg':{}, 'bgNorm':{}, 'bgSub':{}}  # Define output dicts
+#         for key in keys:
+#             self.eVMI['full'][key] = self.data[key]['img']
+#
+#             # Norm by no. events with gas.
+#             # May want to norm by other factors too?
+#             self.eVMI['fullNorm'][key] = self.data[key]['img'].transform(z=hv.dim('z')/np.array(self.data[key]['raw']['gas']).sum())
+#
+#         # Background images - assumed to be same filter(s) but gas off
+#         # NOTE: MAY NEED TO USE EXPLICT .copy() here? TBC
+#         if bgSub:
+#             filterOptions['gas'] = [False]  # Hard coded for now, should allow passing for more flexibility
+#             self.image2d(dim=['xc','yc'], filterOptions=filterOptions)  # keys=keys,
+#
+#             for key in keys:
+#                 self.eVMI['bg'][key] = self.data[key]['img']
+#                 self.eVMI['bgNorm'][key] = self.data[key]['img'].transform(z=hv.dim('z')/(~np.array(vmi.data[key]['raw']['gas']).astype(bool)).sum())
+#
+#                 # Direct data manipulation OK, returns numpy.ndarray
+#                 # Seems easiest way to go for now.
+#                 # But might be better with hv.transform methods?
+#                 # Didn't need dim in testing... but did here. Odd!
+#                 self.eVMI['bgSub'][key] = hv.Image(self.eVMI['fullNorm'][key].data['z'] - self.eVMI['bgNorm'][key].data['z'])
 
 
     def genVMIXmulti(self, filterOptions={}, **kwargs):
@@ -197,6 +197,10 @@ class VMI(tb.tmoDataBase):
         metrics = {'filterOptions':filterOptions.copy()}  # Log stuff to Xarray attrs
 
         for n, key in enumerate(keys):
+
+            if self.verbose['main']:
+                print(f"Generating VMI images for dataset {key}")
+
             # Initially assume mask can be used directly, but set to all True if not passed
             # Will likely want more flexibility here later
 #             if mask is None:
@@ -413,6 +417,8 @@ class VMI(tb.tmoDataBase):
 
         Note:
         - dims = ['yc','xc'] by default (now set from input Xarray) - changing will flip image!
+        - hv backend doesn't colourmap well with log10 setting at the moment.
+        - hv backend always uses reduced resolution image stack (TODO: add options here).
 
         """
 
