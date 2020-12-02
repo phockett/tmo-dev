@@ -484,6 +484,51 @@ class VMIproc(vmi.VMI):
             return hmap  # Otherwise return hv object.
 
 
+# ********* IN PROGRESS
+    # def multiFilterInv(self, filterSet = None, sub = ['signal','bg']):
+    #     """
+    #     Basic multifilter automated routine for VMI images & processing.
+    #
+    #     NOTE - this currently assumes that analysis setup is already completed.
+    #
+    #     NOTE - filterSet not yet fully implemented (in genVMIXmulti).
+    #
+    #     Method: loop over filter parameter settings and recalculate images + inversion. This is a little inefficient, but works.
+    #
+    #     TODO:
+    #     - parallelize.
+    #     - more options for additional processing/subtraction.
+    #     - stacking to existing array - currently just overwrites existing values.
+    #
+    #     """
+    #
+    #     # if not hasattr(self, 'stats'):
+    #     #     self.stats = xr.Dataset()  # Create empty dataset
+    #     self.multiFilter = xr.Dataset()  # Create empty dataset
+    #
+    #     if self.verbose['main']:
+    #         print(f"*** Multi-filter run for filterSet={filterSet}")
+    #
+    #     # Repeat N analysis routines
+    #     for n in np.arange(0,N):
+    #
+    #         if self.verbose['main']:
+    #             print(f"Running set {n+1} of {N}")
+    #
+    #         # Generate VMI images with Poissionian weights (sampling)
+    #         self.genVMIXmulti(bootstrap = True, lambdaP = lambdaP)
+    #
+    #         # Subtract datasets, or other processing?
+    #         if sub is not None:
+    #             self.imgStack['sub'] = self.imgStack[sub[0]] - self.imgStack[sub[1]]
+    #
+    #         # Invert image set
+    #         self.inv(filterSet=filterSet)
+    #
+    #         # Restack results for run n
+    #         self.stats[n] = self.proc[filterSet]['xr'].copy()
+
+
     def bootstrapInv(self, N = 5, lambdaP = 1.0, filterSet = None, sub = ['signal','bg']):
         """
         Basic bootstrap routine for VMI images & processing.
