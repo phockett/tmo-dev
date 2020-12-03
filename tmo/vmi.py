@@ -134,7 +134,7 @@ class VMI(tb.tmoDataBase):
 
 
     # 2nd go, stack to Xarrays for processing
-    def genVMIX(self, norm=True, keys=None, filterOptions={},
+    def genVMIX(self, norm=True, normType = 'shots', keys=None, filterOptions={},
                 bins = (np.arange(0, 1048.1, 1)-0.5,)*2, dim=['xc','yc'], name = 'imgStack',
                 bootstrap = False, lambdaP = 1.0, weights = None, density = None, **kwargs):
         """Generate VMI images from event data, very basic Xarray version.
@@ -151,6 +151,11 @@ class VMI(tb.tmoDataBase):
         norm : bool, default = True
             Normalise images. Currently norm by shots only.
             TODO: add options here.
+
+        normType : str, optional, default = 'shots'
+            Type of normalisation to apply. Currently norm by shots only.
+            This is only used if norm=True
+            TODO: add options here, rationalise logic.
 
         bootstrap : bool, optional, default = False
             If true, generate weights from Poission dist for bootstrap sampling using lambdaP parameter.
@@ -224,13 +229,19 @@ class VMI(tb.tmoDataBase):
             # Histogram and stack to np array
             imgArray[:,:,n] = np.histogram2d(d0,d1, bins = bins, weights = weights, density = density)[0]
 
+            # Normalisation options
+            if normType is 'shots':
+                normVals.append(self.data[key]['mask'].sum()) # shots selected - only for norm to no gas?
+            else:
+                normVals.append(1) # Default to unity
+
             metrics[key] = {'shots':self.data[key]['raw'][dim[0]].shape,
                             'selected':self.data[key]['mask'].sum(),
                             # 'gas':np.array(self.data[key]['raw']['gas']).sum(),  # This doesn't exist in new datasets, just remove for now.
                             'events':d0.size,
-                            'norm':self.data[key]['mask'].size}
+                            'normType':normType,
+                            'norm':normVals[-1]}
 
-            normVals.append(self.data[key]['mask'].size) # shots selected - only for norm to no gas?
 
             if name not in self.data[key].keys():
                 self.data[key][name] = {}
