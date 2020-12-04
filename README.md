@@ -14,4 +14,4 @@ To many use of any of this, you'll need both the tmo-dev source code from Github
 
 ## Releases
 
-- 04/12/20 v0.0.1. Basic working version for low-level data analysis + VMI image processing.
+- 04/12/20 [v0.0.1. Basic working version for low-level data analysis + VMI image processing.](https://github.com/phockett/tmo-dev/releases/tag/v0.0.1) (Tested on LW06, v2, v4, v5 preprocessed data.)
