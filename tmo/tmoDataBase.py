@@ -413,7 +413,7 @@ class tmoDataBase():
         if key is None:
             key = self.runs['proc'][0]
 
-        if dTypes is none:
+        if dTypes is None:
             dTypes = self.dTypes
 
         for dType in dTypes:
