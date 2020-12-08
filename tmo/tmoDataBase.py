@@ -21,12 +21,32 @@ import holoviews as hv
 from holoviews import opts
 hv.extension('bokeh', 'matplotlib')
 
+# Basic timing decorator - IN PROGRESS
+# See, e.g., https://realpython.com/primer-on-python-decorators/#timing-functions
+# NOTE: currently assumes self.verbose exists, and no return values.
+# import functools, time
+# def timer(func):
+#     @functools.wraps(func)
+#     def wrapper(*args, **kwargs):
+#         start = time.perf_counter()
+#         func(*args, **kwargs)
+#         duration = time.perf_counter() - start
+#
+#         if self.verbose['main']:
+#             print(f'Ran {func.__name__!r} in {duration:.4f} secs')
+#
+#
+
+
+
+
 # Set some default plot options
 def setPlotDefaults(fSize = [800,400], imgSize = 500):
     """Basic plot defaults"""
     opts.defaults(opts.Curve(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
                   opts.Image(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),   # Force square format for images (suitable for VMI)
                   opts.HexTiles(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True))
+
 
 def isnotebook():
     """
@@ -191,7 +211,7 @@ class tmoDataBase():
 
 
 
-    def filterData(self, filterOptions = {}, keys = None, dim = 'energies'):
+    def filterData(self, filterOptions = {}, keys = None, dim = 'energies', dTypes = ['raw','metrics']):
         """
         Very basic filter/mask generation function.
 
@@ -206,10 +226,16 @@ class tmoDataBase():
         dim : str, optional, default = 'energies'
             Data to use as template. Not usually required, unless multidim return and/or default data is missing.
 
+        dTypes : list, optional, default = ['raw','metrics']
+            Data dicts to use for filtering.
+            TODO: move this elsewhere!
+
         TODO:
 
         - More flexibility.
         - Filter functions, e.g. saturated electron detector shots? ('xc' > 0).sum(axis = 1) <=1000 in this case I think.
+
+        07/12/20: added support for "metrics" data.
 
         """
 
@@ -241,8 +267,27 @@ class tmoDataBase():
             for item in filterOptions.keys():
 
                 # For 'raw' data types
-                if item in self.data[key]['raw'].keys():
-                    testData = np.array(self.data[key]['raw'][item])
+                # if item in self.data[key]['raw'].keys():
+                #     testData = np.array(self.data[key]['raw'][item])
+                #
+                # # For metrics (derived data)
+                # elif item in self.metrics[key].keys():
+                #     testData = self.metrics[key][item]
+
+                # Version with dict testing
+                for dType in dTypes:
+                    if dim in self.data[key][dType].keys():
+                        dataDict = dType
+                        testData = np.array(self.data[key][dataDict][item])  # np.array wrapper for 'raw' case
+                    else:
+                        dataDict = None
+                        testData = None
+
+                # if dataDict is not None:
+                #     testData = np.array(self.data[key][dataDict][item])  # np.array wrapper for 'raw' case
+                #
+                # else:
+                #     testData = None
 
                     # 27/11/20 = quick hack for multidim col selection in v4 preprocessed data
                     # Pass as dict with 'col', 'value' parameters
@@ -253,6 +298,8 @@ class tmoDataBase():
                     #
                     #     testData = testData[:,col]
                     #
+
+                if testData is not None:
                     # Match single items
                     if type(filterOptions[item]) is not list:
                         filterOptions[item] = [filterOptions[item]]  # UGLY - wrap to list.
@@ -266,6 +313,10 @@ class tmoDataBase():
                     # Case for multidim testData
                     if len(filterOptions[item])==3:
                         mask *= (testData[:,filterOptions[item][2]] >= filterOptions[item][0]) & (testData[:,filterOptions[item][2]] <= filterOptions[item][1])
+
+                else:
+                    if self.verbose['main']:
+                        print(f"Can't filter on data type {item}, not found in dataset {key}")
 
                 # TODO: add other filter types here.
 
@@ -292,20 +343,35 @@ class tmoDataBase():
             print(f'Plot [{run}][{pType}][{dim}] not set.')
 
 
-    def curvePlot(self, dim, filterOptions = None, keys = None):
-        """Basic wrapper for hv.Curve, currently assumes a 1D dataset, or will skip plot."""
+    def curvePlot(self, dim, filterOptions = None, keys = None, dTypes = ['raw','metrics']):
+        """Basic wrapper for hv.Curve, currently assumes a 1D dataset, or will skip plot.
+
+        07/12/20: quick mod to support metrics datatype.
+        """
 
         # Default to first dataset
         if keys is None:
             keys = self.runs['proc'][0]
 
+        # dTypes = ['raw','metrics']  # Quick hack for multiple data dics - should move to function!
 
         for key in keys:
             # Check mask exists, set if not
             if 'mask' not in self.data[key].keys():
                 self.filterData(keys=[key])
 
-            d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']]
+            for dType in dTypes:
+                if dim in self.data[key][dType].keys():
+                    dataDict = dType
+                else:
+                    dataDict = None
+                # elif dim in self.metrics[key].keys():
+                #     d0 = np.array(self.metrics[key][dim[0]])[self.data[key]['mask']]
+
+            if dataDict is not None:
+                d0 = np.array(self.data[key][dataDict][dim[0]])[self.data[key]['mask']]
+            else:
+                pass  # Just skip error cases for now
 
             try:
                 if self.__notebook__:
