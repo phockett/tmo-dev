@@ -417,7 +417,7 @@ class tmoDataBase():
             dTypes = self.dTypes
 
         for dType in dTypes:
-            if (dType in self.data[key].keys()) & (dim in self.data[key][dType].keys()):  # Short circuit here in case dType doesn't exist in dict.
+            if (dType in self.data[key].keys()) && (dim in self.data[key][dType].keys()):  # Short circuit here in case dType doesn't exist in dict.
                 dataDict = dType
             else:
                 dataDict = None
