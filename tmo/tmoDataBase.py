@@ -176,6 +176,67 @@ class tmoDataBase():
             print(f"Invalid datasets: {self.runs['invalid']}")
 
 #**** ANALYSIS
+    # Set some additional dataset parameters
+    def runMetrics(self, keys = None, eROI = [20, 1010]):
+        """
+        Pull metrics from data.
+
+        Currently sets:
+        Ions:
+            - iShot: ion data/events per shot from self.data[key]['raw']['ktofIpk']
+            - iTot: total ion counts
+
+        Electrons:
+            - eShot: electron data/events per shot for [x,y] coords, from self.data[key]['raw']['xc'] and ['yc']
+            - eROI: as eShot but filter on ROI, default = [20, 1010] pixels (covers detector area in LW06, and omits edge counts)
+            - eTot: total electron counts
+
+        Note: "no hit" value is assumed to be -9999.
+
+        Parameters
+        ----------
+        eROI : optional, default = [20,1010]
+            Define upper and lower limits (pixels) used for assessing electron hit data counts. Currently set for square ROI.
+            Note default ROI set for detector area (as of tmolw0618 data).
+
+        """
+
+        # Default to all datasets
+        if keys is None:
+            keys = self.runs['proc']
+
+    #     if not hasattr(self, 'metrics'):
+    #         self.metrics = {}
+
+        for key in keys:
+    #         self.metrics[key] = {}
+
+            metrics = {}
+
+            metrics['iShot'] = (~(np.asarray(self.data[key]['raw']['ktofIpk']) == -9999)).sum(1)
+            metrics['iTot'] = metrics['iShot'].sum()
+
+            # Electron data checks - may want to set processed data to var?
+            # metrics['eCount'] = np.c_[(~(np.asarray(self.data[key]['raw']['xc']) == -9999)).sum(1), (~(np.asarray(self.data[key]['raw']['yc']) == -9999)).sum(1)]
+
+            xc = np.array(self.data[key]['raw']['xc'])
+            xInd = (xc>-9999) #eROI[0]) & (xc<eROI[1])
+
+            yc = np.array(self.data[key]['raw']['yc'])
+            yInd = (yc>-9999)  #(yc>eROI[0]) & (yc<eROI[1])
+
+    #         metrics['eShot'] = np.c_[(~(xc == -9999)).sum(1), (~(yc == -9999)).sum(1)]
+    #         metrics['eTot'] = np.c_[xc[xc>-9999].size, yc[yc>-9999].size]  # Totals
+
+            metrics['eShot'] = np.c_[xInd.sum(1), yInd.sum(1)]
+            metrics['eROI'] = np.c_[((xc>eROI[0]) & (xc<eROI[1])).sum(1), ((yc>eROI[0]) & (yc<eROI[1])).sum(1)]
+
+            metrics['eTot'] = np.c_[metrics['eShot'].sum(0), metrics['eROI'].sum(0)]
+
+    #         self.metrics[key] = metrics  # Set as new dict
+            self.data[key]['metrics'] = metrics  # Add to existing data dict
+
+
     def setFilter(self, filterOptions = {}, reset = False):
         """
         Master filter settings.
@@ -327,15 +388,16 @@ class tmoDataBase():
             self.data[key]['mask'] = mask  # For single filter this is OK, for multiples see vmi version.
 
 
-    def getDataDict(self, dim, key, dTypes = None, returnType = 'dType'):
+    def getDataDict(self, dim, key = None, dTypes = None, returnType = 'dType'):
         """
         Return specific dataset from various dictionaries by dimension name.
 
         dim : string
             Dimension (data) to find/check.
 
-        key : string, int
+        key : string, int, optional, default = None
             Run key into main data structure.
+            If None, use the first run in self.runs['proc'].
 
         dTypes : str, list, optional, default = self.dTypes
             Data dicts to check, defaults to global settings.
@@ -346,6 +408,10 @@ class tmoDataBase():
 
         08/12/20: first attempt, to replace repeated code in various base functions, and allow for multiple types (e.g. 'raw', 'metrics' etc.)
         """
+
+        # Default to first dataset
+        if key is None:
+            key = self.runs['proc'][0]
 
         if dTypes is none:
             dTypes = self.dTypes
