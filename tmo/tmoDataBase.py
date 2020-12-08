@@ -380,7 +380,7 @@ class tmoDataBase():
                         mask *= (testData[:,filterOptions[item][2]] >= filterOptions[item][0]) & (testData[:,filterOptions[item][2]] <= filterOptions[item][1])
 
                 else:
-                    if self.verbose['main']:
+                    if self.verbose['main'] and (item is not 'desc'):   # Ignore 'desc' entries.
                         print(f"Can't filter on data type {item}, not found in dataset {key}")
 
                 # TODO: add other filter types here.
@@ -417,7 +417,7 @@ class tmoDataBase():
             dTypes = self.dTypes
 
         for dType in dTypes:
-            if dim in self.data[key][dType].keys():
+            if (dType in self.data[key].keys()) & (dim in self.data[key][dType].keys()):  # Short circuit here in case dType doesn't exist in dict.
                 dataDict = dType
             else:
                 dataDict = None
@@ -428,7 +428,7 @@ class tmoDataBase():
         elif returnType is 'data':
             if dataDict is not None:
                 if dType is 'raw':
-                    return np.array(self.data[key][dType][dim])
+                    return np.array(self.data[key][dType][dim])  # Explicit conversion to np.array - may just wrap everything this way?
                 else:
                     return self.data[key][dType][dim]
             else:
