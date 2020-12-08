@@ -104,6 +104,8 @@ class tmoDataBase():
                      'files': {N:Path(fileBase, f'run{N}{fileSchema}.{ext}') for N in runList}
                      }
 
+        # Set default data dicts
+        self.dTypes = ['raw','metrics']
 
         # Set for main functions and subfunctions
         self.verbose = {'main':verbose, 'sub':verbose-1}
@@ -275,13 +277,15 @@ class tmoDataBase():
                 #     testData = self.metrics[key][item]
 
                 # Version with dict testing
-                for dType in dTypes:
-                    if dim in self.data[key][dType].keys():
-                        dataDict = dType
-                        testData = np.array(self.data[key][dataDict][item])  # np.array wrapper for 'raw' case
-                    else:
-                        dataDict = None
-                        testData = None
+                # for dType in dTypes:
+                #     if item in self.data[key][dType].keys():
+                #         dataDict = dType
+                #         testData = np.array(self.data[key][dataDict][item])  # np.array wrapper for 'raw' case
+                #     else:
+                #         dataDict = None
+                #         testData = None
+
+                testData = self.getDataDict(item, key, returnType = 'data')  # Method version of the above
 
                 # if dataDict is not None:
                 #     testData = np.array(self.data[key][dataDict][item])  # np.array wrapper for 'raw' case
@@ -323,7 +327,46 @@ class tmoDataBase():
             self.data[key]['mask'] = mask  # For single filter this is OK, for multiples see vmi version.
 
 
+    def getDataDict(self, dim, key, dTypes = None, returnType = 'dType'):
+        """
+        Return specific dataset from various dictionaries by dimension name.
 
+        dim : string
+            Dimension (data) to find/check.
+
+        key : string, int
+            Run key into main data structure.
+
+        dTypes : str, list, optional, default = self.dTypes
+            Data dicts to check, defaults to global settings.
+
+        returnType : str, optional, default = 'dType'
+            - 'dType' return data type to use as index.
+            - 'data' return data array.
+
+        08/12/20: first attempt, to replace repeated code in various base functions, and allow for multiple types (e.g. 'raw', 'metrics' etc.)
+        """
+
+        if dTypes is none:
+            dTypes = self.dTypes
+
+        for dType in dTypes:
+            if dim in self.data[key][dType].keys():
+                dataDict = dType
+            else:
+                dataDict = None
+
+        if returnType is 'dType':
+            return dataDict
+
+        elif returnType is 'data':
+            if dataDict is not None:
+                if dType is 'raw':
+                    return np.array(self.data[key][dType][dim])
+                else:
+                    return self.data[key][dType][dim]
+            else:
+                return dataDict  # Currently set to None if dim not found, may change later.
 
     # def checkDims(testArray):
     #     """Check if array is 2D"""
@@ -343,7 +386,7 @@ class tmoDataBase():
             print(f'Plot [{run}][{pType}][{dim}] not set.')
 
 
-    def curvePlot(self, dim, filterOptions = None, keys = None, dTypes = ['raw','metrics']):
+    def curvePlot(self, dim, filterOptions = None, keys = None): # , dTypes = ['raw','metrics']):
         """Basic wrapper for hv.Curve, currently assumes a 1D dataset, or will skip plot.
 
         07/12/20: quick mod to support metrics datatype.
@@ -360,18 +403,20 @@ class tmoDataBase():
             if 'mask' not in self.data[key].keys():
                 self.filterData(keys=[key])
 
-            for dType in dTypes:
-                if dim in self.data[key][dType].keys():
-                    dataDict = dType
-                else:
-                    dataDict = None
-                # elif dim in self.metrics[key].keys():
-                #     d0 = np.array(self.metrics[key][dim[0]])[self.data[key]['mask']]
+            # for dType in dTypes:
+            #     if dim in self.data[key][dType].keys():
+            #         dataDict = dType
+            #     else:
+            #         dataDict = None
+            #     # elif dim in self.metrics[key].keys():
+            #     #     d0 = np.array(self.metrics[key][dim[0]])[self.data[key]['mask']]
+            #
+            # if dataDict is not None:
+            #     d0 = np.array(self.data[key][dataDict][dim[0]])[self.data[key]['mask']]
+            # else:
+            #     pass  # Just skip error cases for now
 
-            if dataDict is not None:
-                d0 = np.array(self.data[key][dataDict][dim[0]])[self.data[key]['mask']]
-            else:
-                pass  # Just skip error cases for now
+            d0 = self.getDataDict(dim[0], key, returnType = 'data')[self.data[key]['mask']]
 
             try:
                 if self.__notebook__:
@@ -399,7 +444,8 @@ class tmoDataBase():
             if 'mask' not in self.data[key].keys():
                 self.filterData(keys=[key], dim = dim)  # Pass dim or use default here - issue with passing is additional dim checks required to avoid collapsing multidim data
 
-            d0 = np.array(self.data[key]['raw'][dim])[self.data[key]['mask']]
+            # d0 = np.array(self.data[key]['raw'][dim])[self.data[key]['mask']]
+            d0 = self.getDataDict(dim, key, returnType = 'data')[self.data[key]['mask']]
 
             # Check cols, otherwise will be flatterned by np.histogram
             # TODO: move to separate function, and use .ndim (OK for h5 and np arrays)
@@ -498,8 +544,11 @@ class tmoDataBase():
             if 'mask' not in self.data[key].keys():
                 self.filterData(keys=[key])
 
-            d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']]
-            d1 = np.array(self.data[key]['raw'][dim[1]])[self.data[key]['mask']]
+            # d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']]
+            # d1 = np.array(self.data[key]['raw'][dim[1]])[self.data[key]['mask']]
+
+            d0 = self.getDataDict(dim[0], key, returnType = 'data')[self.data[key]['mask']]
+            d1 = self.getDataDict(dim[1], key, returnType = 'data')[self.data[key]['mask']]
 
             # Check cols
             d1Range = 1
@@ -562,8 +611,10 @@ class tmoDataBase():
             # Note flatten or np.concatenate here to set to 1D, not sure if function matters as long as ordering consistent?
             # Also, 1D mask selection will automatically flatten? This might be an issue for keeping track of channels?
             # Should use numpy masked array...?
-            d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']].flatten()
-            d1 = np.array(self.data[key]['raw'][dim[1]])[self.data[key]['mask']].flatten()
+            # d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']].flatten()
+            # d1 = np.array(self.data[key]['raw'][dim[1]])[self.data[key]['mask']].flatten()
+            d0 = self.getDataDict(dim[0], key, returnType = 'data')[self.data[key]['mask']].flatten()
+            d1 = self.getDataDict(dim[1], key, returnType = 'data')[self.data[key]['mask']].flatten()
 
 
             # Quick test with single image - should convert to multiple here?
