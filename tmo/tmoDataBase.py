@@ -625,9 +625,15 @@ class tmoDataBase():
                 d1Range = d1.shape[1]
                 kdims.append(f'{dim[1]} col')
 
+                hexDict[key] = {(key, i):hv.HexTiles((d0, d1[:,i]), dim) for i in np.arange(0,d1Range)}
+
+            else:
+                # For 1D data case
+                hexDict[key] = {(key, 0):hv.HexTiles((d0, d1), dim)}
+
 #             hexList[key] = {i:hv.HexTiles((d0, d1), dim).opts(hexOpts) for i in np.arange(0,d1Range-1)}
             # hexDict[key] = {i:hv.HexTiles((d0, d1[:,i]), dim) for i in np.arange(0,d1Range)}
-            hexDict[key] = {(key, i):hv.HexTiles((d0, d1[:,i]), dim) for i in np.arange(0,d1Range)}
+
 
             self.data[key]['hist2d'] = hexDict[key]
 
