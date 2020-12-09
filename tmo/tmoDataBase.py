@@ -609,9 +609,9 @@ class tmoDataBase():
 #             mask = np.ones_like(self.data[key]['raw'][dim[0]]).astype(bool)
 
             # Check mask exists, set if not
-            # NOW set to always run, otherwise self.filter settings may be missed on update 
-            # if 'mask' not in self.data[key].keys():
-            self.filterData(keys=[key])
+            # NOW set to always run, otherwise self.filter settings may be missed on update
+            if 'mask' not in self.data[key].keys():
+                self.filterData(keys=[key])
 
             # d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']]
             # d1 = np.array(self.data[key]['raw'][dim[1]])[self.data[key]['mask']]
