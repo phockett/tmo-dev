@@ -416,12 +416,13 @@ class tmoDataBase():
         if dTypes is None:
             dTypes = self.dTypes
 
+        dataDict = None # Set default
         for dType in dTypes:
             if (dType in self.data[key].keys()):  # && (dim in self.data[key][dType].keys()):  # Short circuit here in case dType doesn't exist in dict.
                 if (dim in self.data[key][dType].keys()):
                     dataDict = dType
-            else:
-                dataDict = None
+                # else:
+                #     dataDict = None
 
         if returnType is 'dType':
             return dataDict
