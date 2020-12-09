@@ -429,10 +429,10 @@ class tmoDataBase():
 
         elif returnType is 'data':
             if dataDict is not None:
-                if dType is 'raw':
-                    return np.array(self.data[key][dType][dim])  # Explicit conversion to np.array - may just wrap everything this way?
+                if dataDict is 'raw':
+                    return np.array(self.data[key][dataDict][dim])  # Explicit conversion to np.array - may just wrap everything this way?
                 else:
-                    return self.data[key][dType][dim]
+                    return self.data[key][dataDict][dim]
             else:
                 return dataDict  # Currently set to None if dim not found, may change later.
 
