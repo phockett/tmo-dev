@@ -53,6 +53,7 @@ class corr(VMIproc):
             # Get data and stack dims, assumes all dims are (shots x N), and stacks along N
             dimData = []
             kdims = []
+            labels = []
             for dim in dims:
                 dimArray = self.getDataDict(dim, key, returnType = 'data')[self.data[key]['mask']]
                 dimData.append(dimArray)
@@ -75,6 +76,7 @@ class corr(VMIproc):
     #         testCov = np.cov(testData, rowvar=False) # , bias=True)
             testCC = np.corrcoef(testData, rowvar=False)
 
-            self.data[key]['metrics']['cc'] = testCC
+            # self.data[key]['metrics']['cc'] = testCC
+            self.data[key]['metrics']['cc'] = hv.HeatMap((labels, labels, testCC), kdims=kdims, 'cc')
             # self.data[key]['metrics']['cc']
             # TODO: stack to dicts/HoloMap/other...?
