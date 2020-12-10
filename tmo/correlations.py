@@ -77,6 +77,6 @@ class corr(VMIproc):
             testCC = np.corrcoef(testData, rowvar=False)
 
             # self.data[key]['metrics']['cc'] = testCC
-            self.data[key]['metrics']['cc'] = hv.HeatMap((labels, labels, testCC), kdims=kdims, 'cc')
+            self.data[key]['metrics']['cc'] = hv.HeatMap((labels, labels, testCC), kdims, 'cc')
             # self.data[key]['metrics']['cc']
             # TODO: stack to dicts/HoloMap/other...?
