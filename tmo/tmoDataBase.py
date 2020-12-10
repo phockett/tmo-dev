@@ -575,7 +575,7 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
             print(f"Set self.data[key]['curve'] for dim={dim}.")
 
 
-    def histOverlay(self, dim = None, **kwargs):
+    def histOverlay(self, dim = None, pType='curve', **kwargs):
         """
         Plot overlay of histograms over datasets (runs)
 
@@ -586,10 +586,16 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
         # Loop over all datasets
         overlayDict = {}
         for key in self.runs['proc']:
-            if 'curve' not in self.data[key].keys():
-                self.hist(dim=dim, keys=[key], **kwargs)
+            if pType not in self.data[key].keys():
+                if pType == 'curve':
+                    self.hist(dim=dim, keys=[key], **kwargs)
+                else:
+                    print(f'*** Missing hv plot {pType} for key={key}')
+                # if pType == 'cc':
+                #     self.corrRun()
 
-            overlayDict[key] = self.data[key]['curve'][dim]
+
+            overlayDict[key] = self.data[key][pType][dim]
 
         # Set outputs - NdOverlay, holomap and holomap layout.
         self.ndoverlay = hv.NdOverlay(overlayDict, kdims='Run') # .relabel(group='Runs',label=dim, depth=1)

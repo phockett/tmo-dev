@@ -36,6 +36,7 @@ class corr(VMIproc):
         super().__init__(**kwargs)
 
 
+
     def corrRun(self, keys = None, dims = ['intensities', 'eShot'], filterOptions = None):
 
          # Default to all datasets
@@ -67,7 +68,7 @@ class corr(VMIproc):
 
                     # Crude dim mapping for some known types
                     if dim == 'intensities':
-                        labels.extend([f'{dim}-{n}' for n in np.array(self.data[key]['raw']['ts']).astype(str)])
+                        labels.extend([f'{n} ns' for n in np.array(self.data[key]['raw']['ts']).astype(str)])
                     else:
                         labels.extend([f'{dim}-{n}' for n in range(0, dimArray.shape[1])])  # Set arb labels for now - need to propagate from elsewhere!
 
@@ -77,6 +78,20 @@ class corr(VMIproc):
             testCC = np.corrcoef(testData, rowvar=False)
 
             # self.data[key]['metrics']['cc'] = testCC
-            self.data[key]['metrics']['cc'] = hv.HeatMap((labels, labels, testCC), kdims, 'cc')
+            # For now just label with n, since dims might be length (also would need conversion to tuple)
+            # Should come up with a better method here!
+            if 'cc' in self.data[key].keys():
+                n = len(self.data[key]['cc']) + 1
+            else:
+                n = 0
+                self.data[key]['cc'] = {}
+
+            self.data[key]['cc'][n] = hv.HeatMap((labels, labels, testCC), kdims, 'cc')
             # self.data[key]['metrics']['cc']
-            # TODO: stack to dicts/HoloMap/other...?
+
+        # TODO: stack to dicts/HoloMap/other...?
+        # Use existing histOverlay() method for this, using dummy var dim = n
+        self.histOverlay(dim = n, pType='cc')
+
+        if self.verbose['main']:
+            print(f'Set self.ndoverlay, self.hmap and self.layout for dim={dim}.')
