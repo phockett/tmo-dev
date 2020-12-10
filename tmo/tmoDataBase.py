@@ -170,10 +170,14 @@ class tmoDataBase():
                 print(f'*** WARNING: key {key} file missing, will be skipped.')
                 self.runs['invalid'].append(key)
 
+        # Run metrics
+        self.runMetrics()
+
         if self.verbose['main']:
             print(f"Read {len(self.data)} files.")
             print(f"Good datasets: {self.runs['proc']}")
             print(f"Invalid datasets: {self.runs['invalid']}")
+
 
 #**** ANALYSIS
     # Set some additional dataset parameters
@@ -236,6 +240,12 @@ class tmoDataBase():
     #         self.metrics[key] = metrics  # Set as new dict
             self.data[key]['metrics'] = metrics  # Add to existing data dict
 
+    # def setFilterRange(self, filterOptions = {}):
+    #     """
+    #     Set filters for a range of values/bins for a given data type.
+    #     """
+    #
+    #
 
     def setFilter(self, filterOptions = {}, reset = False):
         """
@@ -250,6 +260,13 @@ class tmoDataBase():
         NOTE: Multilevel filter is now set for image processing only in :py:class:`vmi`.
         Only the full multilevel filter is set here, for histogram functions pass options to method independently (for now).
         This will set masks to self.data[key][filterName][mask], while old methods set self.data[key]['mask'].
+
+        TODO:
+        - Ranges:
+
+e.g. Set for time scan...
+tRange = np.arange(test.min(), test.max(), 2e-3)
+laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n in range(0,tRange.size-1)}
 
         """
         # Reset filter?
