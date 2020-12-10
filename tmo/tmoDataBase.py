@@ -254,7 +254,7 @@ class tmoDataBase():
         """
         # Reset filter?
         if reset:
-            self.filters = {}
+            self.filters = {'Default':{}}  # Set an empty value here, otherwise filtersetting will fail later for global settings!
 
         # Loop over input filterOptions and set
         for key,val in filterOptions.items():
@@ -263,6 +263,7 @@ class tmoDataBase():
             if type(val) is not dict:
                 for masterKey in self.filters.keys():
                     self.filters[masterKey][key] = val
+
 
             # Add item to subset only
             else:

@@ -60,9 +60,11 @@ class VMI(tb.tmoDataBase):
                     self.data[runKey][key] = {}  # Init
 
 # REMOVED since it's confusing - will always leave last filter mask set!
-# 10/12/20 REINSTATED in order to allow multiple filtering more generally...
+# 10/12/20 REINSTATED in order to allow multiple filtering more generally... NEED TO PROPAGATE back to base class.
                 self.data[runKey][key]['mask'] = self.data[runKey]['mask'].copy()
+                self.data[runKey][key]['filterSet'] = key
                 self.data[runKey][key]['filter'] = self.filters[key]
+                self.data[runKey][key]['shots'] = self.data[runKey][key]['mask'].sum()
 
 
 #     # 1st go... running, but very slow.
