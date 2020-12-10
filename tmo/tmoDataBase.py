@@ -45,6 +45,7 @@ def setPlotDefaults(fSize = [800,400], imgSize = 500):
     """Basic plot defaults"""
     opts.defaults(opts.Curve(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
                   opts.Image(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),   # Force square format for images (suitable for VMI)
+                  opts.HeatMap(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),
                   opts.HexTiles(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True))
 
 
