@@ -53,7 +53,7 @@ class corr(VMIproc):
 
             # Get data and stack dims, assumes all dims are (shots x N), and stacks along N
             dimData = []
-            kdims = []
+            # kdims = []  # Acutally not used - just set generic ['x','y'] for 2d plotting after dim stacking.
             labels = []
             for dim in dims:
                 dimArray = self.getDataDict(dim, key, returnType = 'data')[self.data[key]['mask']]
@@ -61,10 +61,12 @@ class corr(VMIproc):
 
                 # Set dim labels
                 if dimArray.ndim == 1:
-                    kdims.append(dim)
+                    # kdims.append(dim)
                     labels.extend(dim)
                 else:
-                    kdims.append(f'{dim} col')
+                    # kdims.append(f'{dim} col')
+                    # kdims.append(f'{dim} col')
+
 
                     # Crude dim mapping for some known types
                     if dim == 'intensities':
@@ -86,7 +88,7 @@ class corr(VMIproc):
                 n = 0
                 self.data[key]['cc'] = {}
 
-            self.data[key]['cc'][n] = hv.HeatMap((labels, labels, testCC), kdims, 'cc')
+            self.data[key]['cc'][n] = hv.HeatMap((labels, labels, testCC), ['x','y'], 'cc')
             # self.data[key]['metrics']['cc']
 
         # TODO: stack to dicts/HoloMap/other...?
@@ -94,4 +96,4 @@ class corr(VMIproc):
         self.histOverlay(dim = n, pType='cc')
 
         if self.verbose['main']:
-            print(f'Set self.ndoverlay, self.hmap and self.layout for dim={dim}.')
+            print(f'Set self.ndoverlay, self.hmap and self.layout for dim={dims}.')
