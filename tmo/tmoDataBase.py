@@ -45,6 +45,7 @@ def setPlotDefaults(fSize = [800,400], imgSize = 500):
     """Basic plot defaults"""
     opts.defaults(opts.Curve(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
                   opts.Image(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),   # Force square format for images (suitable for VMI)
+                  opts.HeatMap(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),
                   opts.HexTiles(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True))
 
 
@@ -170,10 +171,14 @@ class tmoDataBase():
                 print(f'*** WARNING: key {key} file missing, will be skipped.')
                 self.runs['invalid'].append(key)
 
+        # Run metrics
+        self.runMetrics()
+
         if self.verbose['main']:
             print(f"Read {len(self.data)} files.")
             print(f"Good datasets: {self.runs['proc']}")
             print(f"Invalid datasets: {self.runs['invalid']}")
+
 
 #**** ANALYSIS
     # Set some additional dataset parameters
@@ -236,6 +241,12 @@ class tmoDataBase():
     #         self.metrics[key] = metrics  # Set as new dict
             self.data[key]['metrics'] = metrics  # Add to existing data dict
 
+    # def setFilterRange(self, filterOptions = {}):
+    #     """
+    #     Set filters for a range of values/bins for a given data type.
+    #     """
+    #
+    #
 
     def setFilter(self, filterOptions = {}, reset = False):
         """
@@ -251,10 +262,17 @@ class tmoDataBase():
         Only the full multilevel filter is set here, for histogram functions pass options to method independently (for now).
         This will set masks to self.data[key][filterName][mask], while old methods set self.data[key]['mask'].
 
+        TODO:
+        - Ranges:
+
+e.g. Set for time scan...
+tRange = np.arange(test.min(), test.max(), 2e-3)
+laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n in range(0,tRange.size-1)}
+
         """
         # Reset filter?
         if reset:
-            self.filters = {}
+            self.filters = {'Default':{}}  # Set an empty value here, otherwise filtersetting will fail later for global settings!
 
         # Loop over input filterOptions and set
         for key,val in filterOptions.items():
@@ -263,6 +281,7 @@ class tmoDataBase():
             if type(val) is not dict:
                 for masterKey in self.filters.keys():
                     self.filters[masterKey][key] = val
+
 
             # Add item to subset only
             else:
@@ -557,7 +576,7 @@ class tmoDataBase():
             print(f"Set self.data[key]['curve'] for dim={dim}.")
 
 
-    def histOverlay(self, dim = None, **kwargs):
+    def histOverlay(self, dim = None, pType='curve', **kwargs):
         """
         Plot overlay of histograms over datasets (runs)
 
@@ -568,10 +587,16 @@ class tmoDataBase():
         # Loop over all datasets
         overlayDict = {}
         for key in self.runs['proc']:
-            if 'curve' not in self.data[key].keys():
-                self.hist(dim=dim, keys=[key], **kwargs)
+            if pType not in self.data[key].keys():
+                if pType == 'curve':
+                    self.hist(dim=dim, keys=[key], **kwargs)
+                else:
+                    print(f'*** Missing hv plot {pType} for key={key}')
+                # if pType == 'cc':
+                #     self.corrRun()
 
-            overlayDict[key] = self.data[key]['curve'][dim]
+
+            overlayDict[key] = self.data[key][pType][dim]
 
         # Set outputs - NdOverlay, holomap and holomap layout.
         self.ndoverlay = hv.NdOverlay(overlayDict, kdims='Run') # .relabel(group='Runs',label=dim, depth=1)
