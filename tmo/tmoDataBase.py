@@ -610,6 +610,7 @@ class tmoDataBase():
 
             # Check mask exists, set if not
             # NOW set to always run, otherwise self.filter settings may be missed on update
+            # ACTUALLY removed again, but should set an update flag on filters?
             if 'mask' not in self.data[key].keys():
                 self.filterData(keys=[key])
 
