@@ -40,16 +40,19 @@ class getRaw(tb.tmoDataBase, inv.VMIproc):
         if self.verbose['main']:
             print(f"*** Reading raw data for expt={expt}, run={run}")
             print(f"Found detectors: {run.detnames}")
-            
-        for det in run.detnames:
-            data[det] = run.Detector(det)
 
-        tt_camera = run.Detector('tmoopal2')
-        opal = run.Detector('tmoopal')
-        ims = None
+        data = {}
+        for det in run.detnames:
+            data[det] = det
+            data[det]['raw'] = run.Detector(det)
+            data[det]['items'] = [item for item in dir(data[det]) if not item.startswith('_')]
+
+        # tt_camera = run.Detector('tmoopal2')
+        # opal = run.Detector('tmoopal')
+        # ims = None
 
         # Set data
-        items = [item for item in dir(tt_camera.ttfex) if not item.startswith('_')]
+        # items = [item for item in dir(tt_camera.ttfex) if not item.startswith('_')]
 
         Nfound = 0
 

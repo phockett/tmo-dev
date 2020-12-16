@@ -38,6 +38,18 @@ class corr(VMIproc):
 
 
     def corrRun(self, keys = None, dims = ['intensities', 'eShot'], filterOptions = None):
+        """
+        Compute covariance for specified dimensions, per run, with single filter set.
+
+        Uses numpy.corrcoef (https://numpy.org/devdocs/reference/generated/numpy.corrcoef.html) to compute the matrices, which returns normalised covariance (correlation coefficients).
+
+        
+
+        TODO:
+
+        - implement multiple filter sets here.
+
+        """
 
          # Default to all datasets
         if keys is None:
