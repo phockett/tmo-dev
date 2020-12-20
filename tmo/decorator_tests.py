@@ -29,7 +29,6 @@ def runFilterSetLoop(_func=None, *, demoArg = None):
     def decorator_runFilterSetLoop(func):
         @functools.wraps(func)
 
-        # Wrapper with optional args, kwargs. Note specify self first for class method wrapping.
         def wrapper_runFilterSetLoop(self, *args, filterOptions={}, keys=None, filterSet=None, dim = 'energies', **kwargs):
 
             # Update filters if required
@@ -55,15 +54,21 @@ def runFilterSetLoop(_func=None, *, demoArg = None):
 
                     # *** Consolidate filter logic...
                     # Move filter logic here
-                    if filterUpdate or (not 'mask' in self.data[key][filterKey].keys()):
+#                     if filterUpdate or (not 'mask' in self.data[key][filterKey].keys()):
+                    # TODO: fix logic here.
+                    # Should run for cases where filterKey and/or [filterKey]['mask'] is missing, or filterUpdate is set
+                    if (filterKey in data.data[key].keys()) and (not ('mask' in data.data[key][filterKey].keys()) or filterUpdate):
                         # super().filterData(filterOptions = self.filters[filterKey], keys = key, dim = dim)
-                        filterData(filterOptions = self.filters[filterKey], keys = key, dim = dim)
+                        self.filterData(filterOptions = self.filters[filterKey], keys = key, dim = dim)
 
-                    value = func(*args, keys = key, **kwargs)  # Not sure if this will work - self will be fist *arg, then rest keyword?
+                    if self.verbose['main']:
+                        print(f'Running {func.__name__} for {key}, {filterKey}')
 
-                    returnVals[key].update({filterSet:value})
+                    value = func(self, *args, keys = [key], **kwargs)  # Not sure if this will work - self will be fist *arg, then rest keyword?
 
-            return returnVals
+#                     returnVals.update({key:{filterSet:value}})
+
+#             return returnVals
 
         return wrapper_runFilterSetLoop
 
@@ -83,3 +88,8 @@ class decTest(vmi.VMI):
         super().__init__(**kwargs)
 
         self.method = method
+
+    # Test wrapping metrics function - this is now running, but note it doesn't need looping over filters, so should set additional logic in decortor (or split functions)
+    @runFilterSetLoop
+    def runMetrics(self, **kwargs):
+        super().runMetrics(**kwargs)
