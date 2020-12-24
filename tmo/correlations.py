@@ -225,37 +225,37 @@ class corr(VMIproc):
         return sparray.reshape(shape).sum(axis=axis)
 
 
-***********************************************************************
-# TODO: finish this... just copied code over so far (22/12/20), need to implement
-# - Sparse check/creation.
-# - Set data for covariance, inc. filtering/multiple filters (for now wrap as per genVMIXmulti)
-# - Downsample
-# - Gen covar images & stack to Xarray (as per existing code)
-# Protype code in https://pswww.slac.stanford.edu/jupyterhub/user/phockett/lab/tree/dev/VMI-correlations_sparse_tests_131220.ipynb
-
-# Generate correlations with ion data - loop over pixels, may want to aggregate/downsample first?
-# WITH DOWNSAMPLING, only set for image dims (otherwise need to ds on correlated shots too)
-
-dsRatios = [4,4,1]  # Downsample dims [x,y,shot]
-
-s2ds = downsample3(s2, [4,4,1])
-
-# dsSize = [s2.shape[n]/dsRatios[n] for n in range(0,len(dsRatios))]
-dsSize = s2ds.shape
-
-corrImg = np.zeros([dsSize[0], dsSize[1]])
-
-iData = np.array(data.data[key]['raw']['intensities'][shot, 0])
-
-# For large (x,y) this is slow... should be able to parallelise.
-# Parallel over one dim might be faster too, although will involve a lot of redundant calcs.
-# Efficient way to reduce array first?
-iRange = [0,dsSize[0]]
-for x in np.arange(iRange[0],iRange[1]):
-    for y in np.arange(iRange[0],iRange[1]):
-        corrImg[x,y] += np.corrcoef(np.c_[s2ds[x,y,:].todense(),iData], rowvar=False)[0,-1]
-
-**********************************************************************
+# ***********************************************************************
+# # TODO: finish this... just copied code over so far (22/12/20), need to implement
+# # - Sparse check/creation.
+# # - Set data for covariance, inc. filtering/multiple filters (for now wrap as per genVMIXmulti)
+# # - Downsample
+# # - Gen covar images & stack to Xarray (as per existing code)
+# # Protype code in https://pswww.slac.stanford.edu/jupyterhub/user/phockett/lab/tree/dev/VMI-correlations_sparse_tests_131220.ipynb
+#
+# # Generate correlations with ion data - loop over pixels, may want to aggregate/downsample first?
+# # WITH DOWNSAMPLING, only set for image dims (otherwise need to ds on correlated shots too)
+#
+# dsRatios = [4,4,1]  # Downsample dims [x,y,shot]
+#
+# s2ds = downsample3(s2, [4,4,1])
+#
+# # dsSize = [s2.shape[n]/dsRatios[n] for n in range(0,len(dsRatios))]
+# dsSize = s2ds.shape
+#
+# corrImg = np.zeros([dsSize[0], dsSize[1]])
+#
+# iData = np.array(data.data[key]['raw']['intensities'][shot, 0])
+#
+# # For large (x,y) this is slow... should be able to parallelise.
+# # Parallel over one dim might be faster too, although will involve a lot of redundant calcs.
+# # Efficient way to reduce array first?
+# iRange = [0,dsSize[0]]
+# for x in np.arange(iRange[0],iRange[1]):
+#     for y in np.arange(iRange[0],iRange[1]):
+#         corrImg[x,y] += np.corrcoef(np.c_[s2ds[x,y,:].todense(),iData], rowvar=False)[0,-1]
+#
+# **********************************************************************
 # Generate correlated VMI data.
 # Currently mirrors genVMIX for most boilerplate, so should clear up.
 def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=None, filterOptions={}, returnFlag = False,
