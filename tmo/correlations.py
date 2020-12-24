@@ -322,7 +322,6 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
     if keys is None:
         keys = self.runs['proc']
 
-
     if filterOptions is not None:
 #             print(filterOptions)
 #             self.filterData(filterOptions = filterOptions)
@@ -377,7 +376,6 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
 #             if mask is None:
 #             mask = np.ones_like(self.data[key]['raw'][dim[0]]).astype(bool)
 
-
         # Check mask exists, set if not
         if 'mask' not in self.data[key].keys():
 #                 self.filterData(keys=[key])
@@ -388,6 +386,32 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
         # Should use numpy masked array...? Slower in testing.
         # d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']].flatten()
         # d1 = np.array(self.data[key]['raw'][dim[1]])[self.data[key]['mask']].flatten()
+
+
+        # # Normalisation options
+        # NOTE: currently not used for covar case
+        if normType is 'shots':
+            normVals.append(self.data[key]['mask'].sum()) # shots selected - only for norm to no gas?
+        else:
+            normVals.append(1) # Default to unity
+
+        metrics[key] = {'shots':self.data[key]['raw'][dim[0]].shape,
+                        'selected':self.data[key]['mask'].sum(),
+                        # 'gas':np.array(self.data[key]['raw']['gas']).sum(),  # This doesn't exist in new datasets, just remove for now.
+                        'events':d0.size,
+                        'normType':normType,
+                        'norm':normVals[-1]}
+
+
+        # NOTE: Currently setting as per vanilla VMI routine, may want to change as per inv() routine.
+        if name not in self.data[key].keys():
+            self.data[key][name] = {}
+
+        self.data[key][name]['metrics'] =  metrics[key].copy() # For mult filter case, push metrics to filter dict.
+        self.data[key][name]['mask'] = self.data[key]['mask'].copy()
+        self.data[key][name]['imgDims'] = dims  # Set for tracking dim shifts later/in plotting.
+        self.data[key][name]['corrDims'] = corrDims  # Set for tracking dim shifts later/in plotting.
+
 
         # Calculate covar data
         dataCorr = {}  # [] #np.empty(dataImgDS.shape[2])
@@ -430,6 +454,8 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
                                               coords={dims[0]:np.arange(0, dsSize[0]), dims[1]:np.arange(0, dsSize[1]), corrItem:range(0,dataCorr[corrItem].shape[1])}).expand_dims({'run': [key]}))
 #                                         coords={dims[0]:np.arange(0, dsSize[0]), dims[1]:np.arange(0, dsSize[1]), 'col':col in range(0,dataCorr[corrItem].shape[1])}).expand_dims('run', key))
 
+#                 corrStack[-1]['norm'] = ('run', [normVals[-1]])  # Attach single norm value for run - this works, but gives issues when converting to DS later.
+
 #                 corrStack.append(corrImg)
 
                 # corrStack[name] = imgStack.expand_dims('run', key)
@@ -440,28 +466,7 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
                 # corrStack[name] imgStack
 
 
-        # # Normalisation options
-        # if normType is 'shots':
-        #     normVals.append(self.data[key]['mask'].sum()) # shots selected - only for norm to no gas?
-        # else:
-        #     normVals.append(1) # Default to unity
-        #
-        # metrics[key] = {'shots':self.data[key]['raw'][dim[0]].shape,
-        #                 'selected':self.data[key]['mask'].sum(),
-        #                 # 'gas':np.array(self.data[key]['raw']['gas']).sum(),  # This doesn't exist in new datasets, just remove for now.
-        #                 'events':d0.size,
-        #                 'normType':normType,
-        #                 'norm':normVals[-1]}
-        #
-        #
-        # # NOTE: Currently setting as per vanilla VMI routine, may want to change as per inv() routine.
-        # if name not in self.data[key].keys():
-        #     self.data[key][name] = {}
-        #
-        # self.data[key][name]['metrics'] =  metrics[key].copy() # For mult filter case, push metrics to filter dict.
-        # self.data[key][name]['mask'] = self.data[key]['mask'].copy()
-        # self.data[key][name]['imgDims'] = dims  # Set for tracking dim shifts later/in plotting.
-        # self.data[key][name]['corrDims'] = corrDims  # Set for tracking dim shifts later/in plotting.
+
 
 
     # 2nd attempt, swap dim labels & reverse y-dir. This maintains orientation for image plots.
@@ -469,13 +474,15 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
     #                         coords={dim[0]:bins[0][:-1], dim[1]:bins[1][-2::-1], 'run':keys},
     #                         name = name)
 
-    # imgStack['norm'] = ('run', normVals)  # Store normalisation values
+    imgStack = xr.concat(corrStack, dim='run')  # Merge by run and set to name (e.g. filterSet) as per VMI case, then use code as below...
 
-    # if norm:
-    #     imgStack = imgStack/imgStack['norm']
-    #     imgStack.name = name  # Propagate name! Division kills it
-    #
-    # imgStack.attrs['metrics'] = metrics
+    imgStack['norm'] = ('run', normVals)  # Store normalisation values
+
+    if norm:
+        imgStack = imgStack/imgStack['norm']
+        imgStack.name = name  # Propagate name! Division kills it
+
+    imgStack.attrs['metrics'] = metrics
 
     # Try keeping multiple results sets in stack instead.
     # This is a little ugly, but working.
@@ -484,11 +491,13 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
         self.imgStack = xr.Dataset()  # v2, set as xr.Dataset and append Xarrays to this
 
 # # #         self.imgStack.append(imgStack.copy())  # May need .copy() here?  # v1
-#     self.imgStack[name] = corrStack.copy()  # v2 using xr.Dataset - NOTE THIS KILLS METRICS!
+    self.imgStack[name] = imgStack.copy()  # v2 using xr.Dataset - NOTE THIS KILLS METRICS!
 
 #     self.imgStack = xr.merge(corrStack)  # Merge to dataset - this should be OK for one set of runs, but might fail with multiple filters - need to stack as arrays.
 
-    self.imgStack[name] = xr.concat(corrStack, dim='run')  # Merge by run and set to name (e.g. filterSet) as per VMI case.
+#     self.imgStack[name] = xr.concat(corrStack, dim='run')  # Merge by run and set to name (e.g. filterSet) as per VMI case.
+
+#     self.imgStack.coords['norm'] = ('run', normVals)  # Add norm values as coord?  This was used as method previously, but will fail for multiple filterSet types.
 
     # Also return corrStack if desired
     if returnFlag:
