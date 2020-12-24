@@ -256,219 +256,240 @@ for x in np.arange(iRange[0],iRange[1]):
         corrImg[x,y] += np.corrcoef(np.c_[s2ds[x,y,:].todense(),iData], rowvar=False)[0,-1]
 
 **********************************************************************
-    # Generate correlated VMI data.
-    # Currently mirrors genVMIX for most boilerplate, so should clear up.
-    def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=None, filterOptions={},
-                downsampleRatios=[4,4,1], dims=['xc','yc','shot'], corrDims = ['intensities'], name = 'imgStack',
-                bootstrap = False, lambdaP = 1.0, weights = None, density = None, **kwargs):
-        """Generate covariance VMI images from event data, very basic Xarray version.
+# Generate correlated VMI data.
+# Currently mirrors genVMIX for most boilerplate, so should clear up.
+def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=None, filterOptions={}, returnFlag = False,
+            downsampleRatios=[4,4,1], dims=['xc','yc','shot'], corrDims = ['intensities'], name = 'imgStack',
+            bootstrap = False, lambdaP = 1.0, weights = None, density = None, **kwargs):
+    """Generate covariance VMI images from event data, very basic Xarray version.
 
-        v1: adapted from genVMIX v2 code, with all the same issues.
+    v1: adapted from genVMIX v2 code, with all the same issues.
 
-        genVMIX v2: allow for multi-level filter via genVMIXmulti wrapper, changed to super() for filter.
-            TODO: clean this up, currently using a nasty mix of new and old functionality.
-                  Also issues with ordering of functions, and whether some dicts. are already set.
-                  (Should filter all, then genVMIX.)
+    genVMIX v2: allow for multi-level filter via genVMIXmulti wrapper, changed to super() for filter.
+        TODO: clean this up, currently using a nasty mix of new and old functionality.
+              Also issues with ordering of functions, and whether some dicts. are already set.
+              (Should filter all, then genVMIX.)
 
-        v1: single filter set with hard-coded, recursive bg subtraction.
+    v1: single filter set with hard-coded, recursive bg subtraction.
 
-        Parameters
-        ----------
-        covarType : str, optional, default = 'pixel'
-            Method for covariance.
+    Parameters
+    ----------
+    covarType : str, optional, default = 'pixel'
+        Method for covariance.
 
-            - 'pixel' calculate per pixel.
+        - 'pixel' calculate per pixel.
 
-        norm : bool, default = True
-            Normalise images. Currently norm by shots only.
-            TODO: add options here.
+    norm : bool, default = True
+        Normalise images. Currently norm by shots only.
+        TODO: add options here.
 
-        normType : str, optional, default = 'shots'
-            Type of normalisation to apply. Currently norm by shots only.
-            This is only used if norm=True
-            TODO: add options here, rationalise logic.
+    normType : str, optional, default = 'shots'
+        Type of normalisation to apply. Currently norm by shots only.
+        This is only used if norm=True
+        TODO: add options here, rationalise logic.
 
-        dims : list, optional, default = ['xc','yc','shot']
-            List of image dims for Sparse array & VMI creation.
+    dims : list, optional, default = ['xc','yc','shot']
+        List of image dims for Sparse array & VMI creation.
 
-        corrDims : list, optional, default = ['intensities']
-            List of dims for covariance analysis.
+    corrDims : list, optional, default = ['intensities']
+        List of dims for covariance analysis.
 
-        downsampleRatios : list, optional, default = [4,4,1]
-            Downsampling for Sparse array data.
+    downsampleRatios : list, optional, default = [4,4,1]
+        Downsampling for Sparse array data.
 
-        bootstrap : bool, optional, default = False
-            If true, generate weights from Poission dist for bootstrap sampling using lambdaP parameter.
-            https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Poisson_bootstrap
-            (Alternatively, pass array weights)
+    bootstrap : bool, optional, default = False
+        If true, generate weights from Poission dist for bootstrap sampling using lambdaP parameter.
+        https://en.wikipedia.org/wiki/Bootstrapping_(statistics)#Poisson_bootstrap
+        (Alternatively, pass array weights)
 
-        weights, density : options parameters for binning with Numpy.histogram2d, implemented for bootstrapping routine.
-        https://numpy.org/devdocs/reference/generated/numpy.histogram2d.html#numpy.histogram2d
+    weights, density : options parameters for binning with Numpy.histogram2d, implemented for bootstrapping routine.
+    https://numpy.org/devdocs/reference/generated/numpy.histogram2d.html#numpy.histogram2d
 
-        Notes
-        -----
-        Assumes:
+    Notes
+    -----
+    Assumes:
 
-        - 3rd dim is 'shot' only in current code (or, rather, 3rd dim matches )
-        - corrDims are matching size in 1st dim, but may contain multiple types as 2nd dim.
-        - np.corrcoef currently used for correlation analysis.
+    - 3rd dim is 'shot' only in current code (or, rather, 3rd dim matches )
+    - corrDims are matching size in 1st dim, but may contain multiple types as 2nd dim.
+    - np.corrcoef currently used for correlation analysis.
 
-        """
+    """
 
-        # %%timeit
-        # 18.8 s ± 63 ms per loop (mean ± std. dev. of 7 runs, 1 loop each) LW06, Runs 89 - 97 (good only)
+    # %%timeit
+    # 18.8 s ± 63 ms per loop (mean ± std. dev. of 7 runs, 1 loop each) LW06, Runs 89 - 97 (good only)
 
-        # Default to all datasets
-        if keys is None:
-            keys = self.runs['proc']
+    # Default to all datasets
+    if keys is None:
+        keys = self.runs['proc']
 
-        if filterOptions is not None:
+
+    if filterOptions is not None:
 #             print(filterOptions)
 #             self.filterData(filterOptions = filterOptions)
-            super().filterData(filterOptions = filterOptions)  # Use super() for case of single filter set. FOR CORR class this may not call correct parent version?
+        super().filterData(filterOptions = filterOptions)  # Use super() for case of single filter set. FOR CORR class this may not call correct parent version?
 
-        # Check Sparse data is set
-        # UGLY
-        # sList = ['sparse' in self.data[key].keys() for key in keys]
-        # for item in sList:
-        for key in keys:
-            if not 'sparse' in self.data[key].keys():
-                if self.verbose['main']:
-                    print(f"Generating covariance VMI images for dataset {key}")
-
-                self.setSparse(keys = [key], dims = dims)
-
-        # For Poission bootstrap, weights will be generated for each dataset.
-        # TODO: should check & propagate dims here too.
-        pFlag = False
-        if bootstrap and (weights is None):
-            rng = np.random.default_rng()
-            pFlag = True
-
-        # Current method below (as per Elio's code). For LW06 run 89 tests (~70k shots, ~7M events)
-        # Single shot: 1.88 s ± 15.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-        # All shots: 9.2 s ± 62.3 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-        # All shots, convert to int: 11.5 s ± 399 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
-        # See also psana, opal.raw.image(evt)
-
-        # Loop over all datasets
-        # imgArray = np.empty([bins[0].size-1, bins[1].size-1, len(keys)])  # Set empty array
-        normVals = []
-        metrics = {'filterOptions':filterOptions.copy()}  # Log stuff to Xarray attrs
-
-        # corrStack = xr.Dataset()  # Set empty dataset to add to?
-
-        for n, key in enumerate(keys):
-
-            # Downsample sparse array
-            # Currently set as generic function
-            dataImgDS = self.downsampleSparse(self.data[key]['sparse'], downsampleRatios)
-            dsSize = dataImgDS.shape  # Use downsampled data dims
-
+    # Check Sparse data is set
+    # UGLY
+    # sList = ['sparse' in self.data[key].keys() for key in keys]
+    # for item in sList:
+    for key in keys:
+        if not 'sparse' in self.data[key].keys():
             if self.verbose['main']:
-                print(f"Generating covariance VMI images for dataset {key}")
+                print(f"Generating sparse data for dataset {key}")
 
-            # Initially assume mask can be used directly, but set to all True if not passed
-            # Will likely want more flexibility here later
+            self.setSparse(keys = [key], dims = dims)
+
+    # For Poission bootstrap, weights will be generated for each dataset.
+    # TODO: should check & propagate dims here too.
+    pFlag = False
+    if bootstrap and (weights is None):
+        rng = np.random.default_rng()
+        pFlag = True
+
+    # Current method below (as per Elio's code). For LW06 run 89 tests (~70k shots, ~7M events)
+    # Single shot: 1.88 s ± 15.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+    # All shots: 9.2 s ± 62.3 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+    # All shots, convert to int: 11.5 s ± 399 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+    # See also psana, opal.raw.image(evt)
+
+    # Loop over all datasets
+    # imgArray = np.empty([bins[0].size-1, bins[1].size-1, len(keys)])  # Set empty array
+    normVals = []
+    metrics = {'filterOptions':filterOptions.copy()}  # Log stuff to Xarray attrs
+
+    # corrStack = xr.Dataset()  # Set empty dataset to add to?
+    corrStack = []  # Use this to hold Xarrays per run, then concat later.
+
+    for n, key in enumerate(keys):
+
+        # Downsample sparse array
+        # Currently set as generic function
+        # TODO: faster to implement mask here, rather than later? May have issues with downsampling however in that case - routine needs improvement!.
+        dataImgDS = self.downsampleSparse(self.data[key]['sparse'], downsampleRatios)
+        dsSize = dataImgDS.shape  # Use downsampled data dims
+
+        if self.verbose['main']:
+            print(f"Generating covariance VMI images for dataset {key}")
+
+        # Initially assume mask can be used directly, but set to all True if not passed
+        # Will likely want more flexibility here later
 #             if mask is None:
 #             mask = np.ones_like(self.data[key]['raw'][dim[0]]).astype(bool)
 
-            # Check mask exists, set if not
-            if 'mask' not in self.data[key].keys():
+
+        # Check mask exists, set if not
+        if 'mask' not in self.data[key].keys():
 #                 self.filterData(keys=[key])
-                super().filterData(keys=[key])  # Use super() for case of single filter set.
+            super().filterData(keys=[key])  # Use super() for case of single filter set.
 
-            # Note flatten or np.concatenate here to set to 1D, not sure if function matters as long as ordering consistent?
-            # Also, 1D mask selection will automatically flatten? This might be an issue for keeping track of channels?
-            # Should use numpy masked array...? Slower in testing.
-            # d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']].flatten()
-            # d1 = np.array(self.data[key]['raw'][dim[1]])[self.data[key]['mask']].flatten()
+        # Note flatten or np.concatenate here to set to 1D, not sure if function matters as long as ordering consistent?
+        # Also, 1D mask selection will automatically flatten? This might be an issue for keeping track of channels?
+        # Should use numpy masked array...? Slower in testing.
+        # d0 = np.array(self.data[key]['raw'][dim[0]])[self.data[key]['mask']].flatten()
+        # d1 = np.array(self.data[key]['raw'][dim[1]])[self.data[key]['mask']].flatten()
 
-            # Calculate covar data
-            dataCorr = {}  # [] #np.empty(dataImgDS.shape[2])
-            corrStack = []  # Use this to hold Xarrays per run, then concat later.
-            for corrItem in corrDims:
-                # dataCorr.append(np.array(self.data[key]['raw'][item]))
-                dataCorr.update({corrItem: np.array(self.data[key]['raw'][item])})
+        # Calculate covar data
+        dataCorr = {}  # [] #np.empty(dataImgDS.shape[2])
+#         corrStack = []  # Use this to hold Xarrays per run, then concat later.
+        for corrItem in corrDims:
+            # dataCorr.append(np.array(self.data[key]['raw'][item]))
+            dataCorr.update({corrItem: np.array(self.data[key]['raw'][corrItem])})
 
-            # CONVERT TO single NP ARRAY? OR JUST LOOP OVER ITEMS? Latter should be neater to preserve dims
+        # CONVERT TO single NP ARRAY? OR JUST LOOP OVER ITEMS? Latter should be neater to preserve dims
 
-                if dataCorr[corrItem].ndim == 1:
-                    dataCorr[corrItem] = dataCorr[corrItem][:,np.newdim]  # Force to 2D for general looping below - UGLY.
-                                                                 # Could use ndmin=2 above, but this may not keep dim ordering.
+            if dataCorr[corrItem].ndim == 1:
+                dataCorr[corrItem] = dataCorr[corrItem][:,np.newdim]  # Force to 2D for general looping below - UGLY.
+                                                             # Could use ndmin=2 above, but this may not keep dim ordering.
 
-                # Per pixel, assumes effective (x,y,covar) dimensions
-                if covarType == 'pixel':
-                    corrImg = np.zeros([dsSize[0], dsSize[1], dataCorr[corrItem].shape[1]])
+            # Per pixel, assumes effective (x,y,covar) dimensions
+            if covarType == 'pixel':
+                corrImg = np.zeros([dsSize[0], dsSize[1], dataCorr[corrItem].shape[1]])
 
-                    # Compute [x,y] values for each correlated variable
-                    # TODO: parallelise this. VERY UGLY
-                    for col in range(0,dataCorr[corrItem].shape[1]):
-                        for x in np.arange(0, dsSize[0]):
-                            for y in np.arange(0, dsSize[1]):
-                                # TODO: implement weights here - set as fill values for Sparse array.
-                                # If bootstrapping, generate Poission weights of not passed
-                                # if pFlag:
-                                #     weights = rng.poisson(lambdaP, d0.size)
+                # Compute [x,y] values for each correlated variable
+                # TODO: parallelise this. VERY UGLY
+                for col in range(0,dataCorr[corrItem].shape[1]):
+                    if self.verbose['main']:
+                        print(f"Generating covariance VMI images for covar data {corrItem}, col={col} of {dataCorr[corrItem].shape[1]}")
 
-                                corrImg[x,y,col] += np.corrcoef(np.c_[dataImgDS[x,y,:].todense(), dataCorr[corrItem][:,col]], rowvar=False)[0,-1]
+                    for x in np.arange(0, dsSize[0]):
+                        for y in np.arange(0, dsSize[1]):
+                            # TODO: implement weights here - set as fill values for Sparse array.
+                            # If bootstrapping, generate Poission weights of not passed
+                            # if pFlag:
+                            #     weights = rng.poisson(lambdaP, d0.size)
 
-                    # Convert to Xarray - NOT THIS IS PER RUN, for all covar values
-                    corrStack.append(xr.DataArray(corrImg, dims=dims,
-                                            coords={dims[0]:np.arange(0, dsSize[0]), dims[1]:np.arange(0, dsSize[1]), 'col':col in range(0,dataCorr[corrItem].shape[1])}).expand_dims('run', key))
-
-                    # corrStack[name] = imgStack.expand_dims('run', key)
-
-                    # covarStack = xr.DataArray(corrImg, dims=dims,
-                    #                         coords={dims[0]:np.arange(0, dsSize[0]), dims[1]:np.arange(0, dsSize[1]), 'col':col in range(0,dataCorr[corrItem].shape[1])},
-                    #                         name = name).expand_dims('run', key)
-                    # corrStack[name] imgStack
+#                             corrImg[x,y,col] += np.corrcoef(np.c_[dataImgDS[x,y,:].todense(), dataCorr[corrItem][:,col]], rowvar=False)[0,-1]  # No filter
+                            corrImg[x,y,col] += np.corrcoef(np.c_[dataImgDS[x,y,:].todense()[self.data[key]['mask']], dataCorr[corrItem][self.data[key]['mask'],col]], rowvar=False)[0,-1]  # With filter
 
 
-            # # Normalisation options
-            # if normType is 'shots':
-            #     normVals.append(self.data[key]['mask'].sum()) # shots selected - only for norm to no gas?
-            # else:
-            #     normVals.append(1) # Default to unity
-            #
-            # metrics[key] = {'shots':self.data[key]['raw'][dim[0]].shape,
-            #                 'selected':self.data[key]['mask'].sum(),
-            #                 # 'gas':np.array(self.data[key]['raw']['gas']).sum(),  # This doesn't exist in new datasets, just remove for now.
-            #                 'events':d0.size,
-            #                 'normType':normType,
-            #                 'norm':normVals[-1]}
-            #
-            #
-            # # NOTE: Currently setting as per vanilla VMI routine, may want to change as per inv() routine.
-            # if name not in self.data[key].keys():
-            #     self.data[key][name] = {}
-            #
-            # self.data[key][name]['metrics'] =  metrics[key].copy() # For mult filter case, push metrics to filter dict.
-            # self.data[key][name]['mask'] = self.data[key]['mask'].copy()
-            # self.data[key][name]['imgDims'] = dims  # Set for tracking dim shifts later/in plotting.
-            # self.data[key][name]['corrDims'] = corrDims  # Set for tracking dim shifts later/in plotting.
+                # Convert to Xarray - NOT THIS IS PER RUN, for all covar values
+                stackDims = dims[0:-1]
+                stackDims.append(corrItem)
+                corrStack.append(xr.DataArray(corrImg, dims=stackDims, name = name,   #f'{name}_{key}',
+                                              coords={dims[0]:np.arange(0, dsSize[0]), dims[1]:np.arange(0, dsSize[1]), corrItem:range(0,dataCorr[corrItem].shape[1])}).expand_dims({'run': [key]}))
+#                                         coords={dims[0]:np.arange(0, dsSize[0]), dims[1]:np.arange(0, dsSize[1]), 'col':col in range(0,dataCorr[corrItem].shape[1])}).expand_dims('run', key))
+
+#                 corrStack.append(corrImg)
+
+                # corrStack[name] = imgStack.expand_dims('run', key)
+
+                # covarStack = xr.DataArray(corrImg, dims=dims,
+                #                         coords={dims[0]:np.arange(0, dsSize[0]), dims[1]:np.arange(0, dsSize[1]), 'col':col in range(0,dataCorr[corrItem].shape[1])},
+                #                         name = name).expand_dims('run', key)
+                # corrStack[name] imgStack
 
 
-        # 2nd attempt, swap dim labels & reverse y-dir. This maintains orientation for image plots.
-        # imgStack = xr.DataArray(imgArray, dims=[dim[0],dim[1],'run'],
-        #                         coords={dim[0]:bins[0][:-1], dim[1]:bins[1][-2::-1], 'run':keys},
-        #                         name = name)
-
-        # imgStack['norm'] = ('run', normVals)  # Store normalisation values
-
-        # if norm:
-        #     imgStack = imgStack/imgStack['norm']
-        #     imgStack.name = name  # Propagate name! Division kills it
+        # # Normalisation options
+        # if normType is 'shots':
+        #     normVals.append(self.data[key]['mask'].sum()) # shots selected - only for norm to no gas?
+        # else:
+        #     normVals.append(1) # Default to unity
         #
-        # imgStack.attrs['metrics'] = metrics
+        # metrics[key] = {'shots':self.data[key]['raw'][dim[0]].shape,
+        #                 'selected':self.data[key]['mask'].sum(),
+        #                 # 'gas':np.array(self.data[key]['raw']['gas']).sum(),  # This doesn't exist in new datasets, just remove for now.
+        #                 'events':d0.size,
+        #                 'normType':normType,
+        #                 'norm':normVals[-1]}
+        #
+        #
+        # # NOTE: Currently setting as per vanilla VMI routine, may want to change as per inv() routine.
+        # if name not in self.data[key].keys():
+        #     self.data[key][name] = {}
+        #
+        # self.data[key][name]['metrics'] =  metrics[key].copy() # For mult filter case, push metrics to filter dict.
+        # self.data[key][name]['mask'] = self.data[key]['mask'].copy()
+        # self.data[key][name]['imgDims'] = dims  # Set for tracking dim shifts later/in plotting.
+        # self.data[key][name]['corrDims'] = corrDims  # Set for tracking dim shifts later/in plotting.
 
-        # Try keeping multiple results sets in stack instead.
-        # This is a little ugly, but working.
-        if not hasattr(self,'imgStack'):
-            # self.imgStack = []  # May need .copy() here?  # v1, set as list
-            self.imgStack = xr.Dataset()  # v2, set as xr.Dataset and append Xarrays to this
 
-#         self.imgStack.append(imgStack.copy())  # May need .copy() here?  # v1
-        self.imgStack[name] = xr.merge(corrStack).copy()  # v2 using xr.Dataset - NOTE THIS KILLS METRICS!
-                                        # TODO: push to main dict, or coord?
+    # 2nd attempt, swap dim labels & reverse y-dir. This maintains orientation for image plots.
+    # imgStack = xr.DataArray(imgArray, dims=[dim[0],dim[1],'run'],
+    #                         coords={dim[0]:bins[0][:-1], dim[1]:bins[1][-2::-1], 'run':keys},
+    #                         name = name)
+
+    # imgStack['norm'] = ('run', normVals)  # Store normalisation values
+
+    # if norm:
+    #     imgStack = imgStack/imgStack['norm']
+    #     imgStack.name = name  # Propagate name! Division kills it
+    #
+    # imgStack.attrs['metrics'] = metrics
+
+    # Try keeping multiple results sets in stack instead.
+    # This is a little ugly, but working.
+    if not hasattr(self,'imgStack'):
+        # self.imgStack = []  # May need .copy() here?  # v1, set as list
+        self.imgStack = xr.Dataset()  # v2, set as xr.Dataset and append Xarrays to this
+
+# # #         self.imgStack.append(imgStack.copy())  # May need .copy() here?  # v1
+#     self.imgStack[name] = corrStack.copy()  # v2 using xr.Dataset - NOTE THIS KILLS METRICS!
+
+#     self.imgStack = xr.merge(corrStack)  # Merge to dataset - this should be OK for one set of runs, but might fail with multiple filters - need to stack as arrays.
+
+    self.imgStack[name] = xr.concat(corrStack, dim='run')  # Merge by run and set to name (e.g. filterSet) as per VMI case.
+
+    # Also return corrStack if desired
+    if returnFlag:
+        return corrStack
