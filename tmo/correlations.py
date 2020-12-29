@@ -259,7 +259,7 @@ class corr(VMIproc):
 # Generate correlated VMI data.
 # Currently mirrors genVMIX for most boilerplate, so should clear up.
 def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=None, filterOptions={}, returnFlag = False,
-            downsampleRatios=[4,4,1], dims=['xc','yc','shot'], corrDims = ['intensities'], name = 'imgStack',
+            downsampleRatios=[4,4,1], saveSparse = False, dims=['xc','yc','shot'], corrDims = ['intensities'], name = 'imgStack',
             bootstrap = False, lambdaP = 1.0, weights = None, density = None, **kwargs):
     """Generate covariance VMI images from event data, very basic Xarray version.
 
@@ -327,16 +327,16 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
 #             self.filterData(filterOptions = filterOptions)
         super().filterData(filterOptions = filterOptions)  # Use super() for case of single filter set. FOR CORR class this may not call correct parent version?
 
-    # Check Sparse data is set
+    # Check Sparse data is set - NOW set in main loop
     # UGLY
     # sList = ['sparse' in self.data[key].keys() for key in keys]
     # for item in sList:
-    for key in keys:
-        if not 'sparse' in self.data[key].keys():
-            if self.verbose['main']:
-                print(f"Generating sparse data for dataset {key}")
+#     for key in keys:
+#         if not 'sparse' in self.data[key].keys():
+#             if self.verbose['main']:
+#                 print(f"Generating sparse data for dataset {key}")
 
-            self.setSparse(keys = [key], dims = dims)
+#             self.setSparse(keys = [key], dims = dims)
 
     # For Poission bootstrap, weights will be generated for each dataset.
     # TODO: should check & propagate dims here too.
@@ -345,12 +345,6 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
         rng = np.random.default_rng()
         pFlag = True
 
-    # Current method below (as per Elio's code). For LW06 run 89 tests (~70k shots, ~7M events)
-    # Single shot: 1.88 s ± 15.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-    # All shots: 9.2 s ± 62.3 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-    # All shots, convert to int: 11.5 s ± 399 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
-    # See also psana, opal.raw.image(evt)
 
     # Loop over all datasets
     # imgArray = np.empty([bins[0].size-1, bins[1].size-1, len(keys)])  # Set empty array
@@ -361,6 +355,13 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
     corrStack = []  # Use this to hold Xarrays per run, then concat later.
 
     for n, key in enumerate(keys):
+
+        # Moved here to allow for case where data is NOT kept (for RAM)
+        if not 'sparse' in self.data[key].keys():
+            if self.verbose['main']:
+                print(f"Generating sparse data for dataset {key}")
+
+            self.setSparse(keys = [key], dims = dims)
 
         # Downsample sparse array
         # Currently set as generic function
@@ -375,6 +376,7 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
         # Will likely want more flexibility here later
 #             if mask is None:
 #             mask = np.ones_like(self.data[key]['raw'][dim[0]]).astype(bool)
+
 
         # Check mask exists, set if not
         if 'mask' not in self.data[key].keys():
@@ -395,10 +397,10 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
         else:
             normVals.append(1) # Default to unity
 
-        metrics[key] = {'shots':self.data[key]['raw'][dim[0]].shape,
+        metrics[key] = {'shots':self.data[key]['raw'][dims[0]].shape,
                         'selected':self.data[key]['mask'].sum(),
                         # 'gas':np.array(self.data[key]['raw']['gas']).sum(),  # This doesn't exist in new datasets, just remove for now.
-                        'events':d0.size,
+#                         'events':self.data[key]['sparse'][:,:,self.data[key]['mask']].sum,  # This should be sum over (x,y, selected shots) SEEMS TO KILL EVERYTHING?
                         'normType':normType,
                         'norm':normVals[-1]}
 
@@ -467,6 +469,8 @@ def genCorrVMIX(self, covarType = 'pixel', norm=True, normType = 'shots', keys=N
 
 
 
+        if not saveSparse:
+            self.data[key].pop('sparse')
 
 
     # 2nd attempt, swap dim labels & reverse y-dir. This maintains orientation for image plots.
