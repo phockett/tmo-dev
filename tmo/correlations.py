@@ -21,6 +21,8 @@ import holoviews as hv
 
 import numpy as np
 
+import sparse
+
 
 # class corr(tb.tmoDataBase, VMIproc):   # TypeError: Cannot create a consistent method resolution order (MRO) for bases tmoDataBase, VMIproc
 class corr(VMIproc):
