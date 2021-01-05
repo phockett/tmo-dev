@@ -9,13 +9,13 @@
         const response = await fetch('https://api.github.com/repos/phockett/tmo-dev/contents/docs/demos');
         const data = await response.json();
         // let htmlString = '<ul>';
-        let htmlString = '<h1>TMO-DEV demos index</h1><p>For source, see the repo at <a href="https://github.com/phockett/tmo-dev">https://github.com/phockett/tmo-dev</a>.</p><ul>';
+        let htmlString = '<h1>TMO-DEV results (preliminary) index</h1><p>For source, see the repo at <a href="https://github.com/phockett/tmo-dev">https://github.com/phockett/tmo-dev</a>.</p><ul>';
         for (let file of data) {
           // htmlString += `<li><a href="${file.path}">${file.name}</a></li>`;
 
           if (file.name.endsWith('html')) {
             //Quick hack for demos folder only, otherwise full path to github repo is returned
-            htmlString += `<li><a href="https://phockett.github.io/tmo-dev/demos/${file.name}">${file.name}</a></li>`;
+            htmlString += `<li><a href="https://phockett.github.io/tmo-dev/results/${file.name}">${file.name}</a></li>`;
           }
         }
         htmlString += '</ul>';
