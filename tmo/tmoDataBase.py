@@ -172,7 +172,12 @@ class tmoDataBase():
                 self.runs['invalid'].append(key)
 
         # Run metrics
-        self.runMetrics()
+        try:
+            self.runMetrics()
+        except KeyError as err:
+            print(f'*** WARNING: {err}')
+            print('Skipped runMetrics() for dataset.')
+
 
         if self.verbose['main']:
             print(f"Read {len(self.data)} files.")
@@ -272,8 +277,7 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
         """
         # Reset filter?
         if reset:
-            # self.filters = {'Default':{}}  # Set an empty value here, otherwise filtersetting will fail later for global settings!
-            self.filters = {}  # BUT... default case is annoying in cases where filterOptions are explicitly set!
+            self.filters = {'Default':{}}  # Set an empty value here, otherwise filtersetting will fail later for global settings!
 
         # Loop over input filterOptions and set
         for key,val in filterOptions.items():
