@@ -13,7 +13,8 @@ https://github.com/phockett/tmo-dev
 
 # Dev code for new class
 # Inherit from base class, just add evmi functionality here
-import tmoDataBase as tb
+import .tmoDataBase as tb
+# from tmo.utils import _checkDims
 
 import xarray as xr
 import holoviews as hv
@@ -22,7 +23,8 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 
 class VMI(tb.tmoDataBase):
-    from tmo.utils import _checkDims
+
+    from .utils import _checkDims
 
     def __init__(self, **kwargs):
         # Run __init__ from base class
@@ -36,6 +38,9 @@ class VMI(tb.tmoDataBase):
                         'bg':{'gas':False,
                               'desc': 'Background filter.'},
                         }
+
+    # def _checkDims(self):
+    #     _checkDims
 
     def filterData(self, filterOptions = {}, keys = None, dim = 'energies'):
         """Wrapper for filterData when using nested filter (v2, 23/11/20)"""

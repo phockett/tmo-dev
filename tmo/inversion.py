@@ -12,7 +12,7 @@ import numpy as np
 import xarray as xr
 import holoviews as hv
 
-import vmi as vmi
+import .vmi as vmi
 
 # Set cpbasex imports
 # Imports adapted from Elio's code from tmolw0618/scratch/results/tmo_ana/elio/elec_pbasex.ipynb
@@ -197,7 +197,7 @@ class VMIproc(vmi.VMI):
         # Set polars from (x', y')
         self.imgStack.coords['r'] = np.hypot(self.imgStack.xcp, self.imgStack.ycp)
         self.imgStack.coords['theta'] = np.arctan2(self.imgStack.xcp, self.imgStack.ycp)
-        
+
 
 
     def checkCentre(self, nContour = 15, rMax = None, **kwargs):
