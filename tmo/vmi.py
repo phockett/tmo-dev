@@ -13,7 +13,7 @@ https://github.com/phockett/tmo-dev
 
 # Dev code for new class
 # Inherit from base class, just add evmi functionality here
-import .tmoDataBase as tb
+import tmo.tmoDataBase as tb
 # from tmo.utils import _checkDims
 
 import xarray as xr

@@ -12,7 +12,7 @@ import numpy as np
 import xarray as xr
 import holoviews as hv
 
-import .vmi as vmi
+import tmo.vmi as vmi
 
 # Set cpbasex imports
 # Imports adapted from Elio's code from tmolw0618/scratch/results/tmo_ana/elio/elec_pbasex.ipynb
