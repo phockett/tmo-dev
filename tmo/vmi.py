@@ -22,6 +22,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 
 class VMI(tb.tmoDataBase):
+    from .util import _checkDims
 
     def __init__(self, **kwargs):
         # Run __init__ from base class
@@ -421,7 +422,7 @@ class VMI(tb.tmoDataBase):
 
 #************* Plotting
 
-    def showImg(self, run = None, name = 'signal', clims = None, hist = True, dims = None,
+    def showImg(self, run = None, name = 'signal', clims = None, hist = True, dims = None, swapDims = None,
                 log10 = False, returnImg = False, backend = 'hv'):
         """
         Crude wrapper for hv.Image (or native Xarray plotter)
@@ -430,6 +431,7 @@ class VMI(tb.tmoDataBase):
 
         Note:
         - dims = ['yc','xc'] by default (now set from input Xarray) - changing will flip image!
+        - For plotting non-dimensional dims, pass as dims = [plot dims] and swapDims = [old dims].
         - hv backend doesn't colourmap well with log10 setting at the moment.
         - hv backend always uses reduced resolution image stack (TODO: add options here).
 
@@ -442,6 +444,10 @@ class VMI(tb.tmoDataBase):
         if dims is None:
             # dims = self.data[run][name]['imgDims']  # Set dims
             dims = list(self.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
+
+        else:
+            self._checkDims(dataType = 'imgStack', dimsCheck = dims, swapDims = swapDims)
+
 
         if backend == 'xr':
             if log10:
@@ -472,12 +478,14 @@ class VMI(tb.tmoDataBase):
                 return hvImg  # Otherwise return hv object.
 
 
-    def showImgSet(self, run = None, name = 'signal', clims = None, hist = True, dims = None, returnImg = False):
+    def showImgSet(self, run = None, name = 'signal', clims = None, hist = True, dims = None,
+                    swapDims = None, returnImg = False):
         """
         Crude wrapper for hv.HoloMap for images - basically as per showImg(), but full map.
 
         Note:
         - dims = ['yc','xc'] by default, changing will flip image!
+        - For plotting non-dimensional dims, pass as dims = [plot dims] and swapDims = [old dims].
         - Should add a dim check here for consistency.
 
         """
@@ -493,6 +501,9 @@ class VMI(tb.tmoDataBase):
         if dims is None:
             # dims = self.data[run][name]['imgDims']  # Set dims
             dims = list(self.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
+
+        else:
+            self._checkDims(dataType = 'imgStack', dimsCheck = dims, swapDims = swapDims)
 
         # Firstly set to an hv.Dataset
         imgDS = hv.Dataset(self.restackVMIdataset())
