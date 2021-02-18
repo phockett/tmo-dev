@@ -182,6 +182,23 @@ class VMIproc(vmi.VMI):
 
     #         data.imgStack['signal'].xc[xInd]  # Can index INTO array with index.
 
+    def setPolar(self):
+        """
+        Set polar coords for image stack
+
+        Assumes all images have same centre coords, as defined by self.centreInds.
+
+        """
+
+        # Set new coords from distribution centre - (x', y')
+        self.imgStack.coords['xcp'] = self.imgStack.coords['xc'] - self.centreInds['xc']['coord']
+        self.imgStack.coords['ycp'] = self.imgStack.coords['yc'] - self.centreInds['yc']['coord']
+
+        # Set polars from (x', y')
+        self.imgStack.coords['r'] = np.hypot(self.imgStack.xcp, self.imgStack.ycp)
+        self.imgStack.coords['theta'] = np.arctan2(self.imgStack.xcp, self.imgStack.ycp)
+        
+
 
     def checkCentre(self, nContour = 15, rMax = None, **kwargs):
         # Set circles
