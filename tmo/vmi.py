@@ -22,7 +22,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 
 class VMI(tb.tmoDataBase):
-    from .util import _checkDims
+    from .utils import _checkDims
 
     def __init__(self, **kwargs):
         # Run __init__ from base class
