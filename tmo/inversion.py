@@ -430,18 +430,8 @@ class VMIproc(vmi.VMI):
 
             # Set arb bins here to allow for resized arrays - may need some work!
             # ACTUALLY, use existing bins, which should be OK...?
-            try:
-                b0 = self.imgStack[dims[0]][np.arange(0,data.shape[0])]
-                b1 = self.imgStack[dims[1]][np.arange(0,data.shape[1])]
-
-            # Default to int coords, this allows for cases where sizes don't match (if resized for instance)
-            except IndexError:
-                b0 = np.arange(0,data.shape[0])
-                b1 = np.arange(0,data.shape[1])
-
-                if self.verbose['main']:
-                    print(f"*** Inversion routine for filterSet = {filterSet} dropping back to default int coords.")
-
+            b0 = self.imgStack[dims[0]][np.arange(0,data.shape[0])]
+            b1 = self.imgStack[dims[1]][np.arange(0,data.shape[1])]
 
             self.imgStack[dset] = xr.DataArray(data, dims=[dims[0],dims[1],'run'],
                                                         coords={dims[0]:b0, dims[1]:b1, 'run':self.runs['proc']},
@@ -456,19 +446,30 @@ class VMIproc(vmi.VMI):
 
 
     # Similar to showImgSet code, but for spectral datasets [E,beta,run]
-    def plotSpectra(self, filterSet = 'signal', overlay = 'BLM', returnMap = False, ePlot = None, useMask = True): # , rMask = slice(0.3,-1)):
+    def plotSpectra(self, filterSet = 'signal', overlay = 'BLM', returnMap = False,
+                    ePlot = None, plotPix = True, useMask = True): # , rMask = slice(0.3,-1)):
         """
         Plot outputs from image inversion using Holoviews.
 
         By default use the existing mask. Pass `useMask=False` to ignore. An energy plot range can also be set as ePlot=[eStart,eStop].
         """
+        dataPlot = self.proc[filterSet]['xr']
 
+        # Set kdims if passed - note this currently needs to be set at XR level.
+        # EDIT: changed to flag for E/pixel only to avoid dim issues here
+        if plotPix:
+            kdims = ['pixel']
+            dataPlot = dataPlot.swap_dims({'E':'pixel'})
 
-        # Firstly set to an hv.Dataset
-        if useMask:
-            eSpecDS = hv.Dataset(self.proc[filterSet]['xr'].where(self.proc[filterSet]['xr']['mask'], drop=True))
         else:
-            eSpecDS = hv.Dataset(self.proc[filterSet]['xr'])
+            kdims = ['E']
+
+        # Set to an hv.Dataset
+        if useMask:
+            eSpecDS = hv.Dataset(dataPlot.where(self.proc[filterSet]['xr']['mask'], drop=True))
+        else:
+            eSpecDS = hv.Dataset(dataPlot)
+
 
         # Then a HoloMap of curves
         # Crude radial mask for plot (assumes dims)
@@ -477,9 +478,9 @@ class VMIproc(vmi.VMI):
         # hmap = eSpecDS[:,rMask,:].to(hv.Curve, kdims=['E'])  # Version with basic mask
 
         if ePlot is not None:
-            hmap = eSpecDS[:,slice(ePlot[0],ePlot[1]),:].to(hv.Curve, kdims=['E'])  # Version with basic mask
+            hmap = eSpecDS[:,slice(ePlot[0],ePlot[1]),:].to(hv.Curve, kdims=kdims)  # Version with basic mask
         else:
-            hmap = eSpecDS.to(hv.Curve, kdims=['E'])
+            hmap = eSpecDS.to(hv.Curve, kdims=kdims)
 
 
         # Code from showPlot()
