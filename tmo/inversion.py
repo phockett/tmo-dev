@@ -447,8 +447,19 @@ class VMIproc(vmi.VMI):
 
             # Set arb bins here to allow for resized arrays - may need some work!
             # ACTUALLY, use existing bins, which should be OK...?
-            b0 = self.imgStack[dims[0]][np.arange(0,data.shape[0])]
-            b1 = self.imgStack[dims[1]][np.arange(0,data.shape[1])]
+            # b0 = self.imgStack[dims[0]][np.arange(0,data.shape[0])]
+            # b1 = self.imgStack[dims[1]][np.arange(0,data.shape[1])]
+            try:
+                b0 = self.imgStack[dims[0]][np.arange(0,data.shape[0])]
+                b1 = self.imgStack[dims[1]][np.arange(0,data.shape[1])]
+
+            # Default to int coords, this allows for cases where sizes don't match (if resized for instance)
+            except IndexError:
+                b0 = np.arange(0,data.shape[0])
+                b1 = np.arange(0,data.shape[1])
+
+                if self.verbose['main']:
+                    print(f"*** Inversion routine for filterSet = {filterSet} dropping back to default int coords.")
 
             self.imgStack[dset] = xr.DataArray(data, dims=[dims[0],dims[1],'run'],
                                                         coords={dims[0]:b0, dims[1]:b1, 'run':self.runs['proc']},
