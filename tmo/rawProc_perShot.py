@@ -5,7 +5,7 @@ Read raw data (XTC files + psana IO) + further processing + Holoviews.
 
 Note: this is currently very low-level, but imports methods already developed for preprocessed data.
 
-09/12/20 v0.0.1
+09/12/20 v0.0.1 Dev for LW08 TimeTool runs - note hard-coded detector names, reads tmoopal & tmoopal2 only.
 
 Paul Hockett
 

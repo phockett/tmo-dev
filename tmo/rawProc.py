@@ -5,7 +5,7 @@ Read raw data (XTC files + psana IO) + further processing + Holoviews.
 
 Note: this is currently very low-level, but imports methods already developed for preprocessed data.
 
-09/12/20 v0.0.1
+09/12/20 v0.0.1 Devoping from _perShot version for more general use. Code dev from https://pswww.slac.stanford.edu/jupyterhub/user/phockett/lab/workspaces/scratch-Feb21/tree/dev/results_LW08/LW08_raw_VMI_94-101_091220.ipynb and https://pswww.slac.stanford.edu/jupyterhub/user/phockett/lab/workspaces/scratch-Feb21/tree/dev/results_LW08/read_raw_LW08mod_061220.ipynb
 
 Paul Hockett
 
@@ -27,14 +27,23 @@ class getRaw(tb.tmoDataBase, inv.VMIproc):
         # Run __init__ from base class
         super().__init__(**kwargs)
 
-    # Minimal function for pulling timing details & VMI data
-    # Basically follows example `read_raw.ipynb` example notebook
-    def getRawDataImgs(self, run_number, Nfind = 300, nskip = 1, shotImgs = True, filterOptions = {}):
-
+    def getRun(self, run_number):
         # Set data
         expt = self.runs['expt']
         ds = ps.DataSource(exp=expt, run=run_number)
         run = next(ds.runs())
+
+        return run
+
+    # Minimal function for pulling timing details & VMI data
+    # Basically follows example `read_raw.ipynb` example notebook
+    def getRawDataImgs(self, run_number, Nfind = 300, nskip = 1, shotImgs = True, filterOptions = {}):
+
+        # # Set data
+        # expt = self.runs['expt']
+        # ds = ps.DataSource(exp=expt, run=run_number)
+        # run = next(ds.runs())
+
 
         # Get detectors
         if self.verbose['main']:
@@ -58,7 +67,7 @@ class getRaw(tb.tmoDataBase, inv.VMIproc):
 
     #     ttFltpos = np.empty(Nfind)
     #     ttPS = np.empty(Nfind)
-        ttArray = np.empty((Nfind,len(items)))
+        # ttArray = np.empty((Nfind,len(items)))
 
 
         for nevent, event in enumerate(run.events()):

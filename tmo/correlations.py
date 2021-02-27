@@ -84,7 +84,7 @@ class corr(VMIproc):
 
                     # Crude dim mapping for some known types
                     if dim == 'intensities':
-                        labels.extend([f'{n} ns' for n in np.array(self.data[key]['raw']['ts']).astype(str)])
+                        labels.extend([f'{n} $\mu$s' for n in np.array(self.data[key]['raw']['ts']).astype(str)])
                     else:
                         labels.extend([f'{dim}-{n}' for n in range(0, dimArray.shape[1])])  # Set arb labels for now - need to propagate from elsewhere!
 
@@ -515,12 +515,12 @@ class corr(VMIproc):
 
         # Try keeping multiple results sets in stack instead.
         # This is a little ugly, but working.
-        if not hasattr(self,'imgStack'):
+        if not hasattr(self,'corrStack'):
             # self.imgStack = []  # May need .copy() here?  # v1, set as list
-            self.imgStack = xr.Dataset()  # v2, set as xr.Dataset and append Xarrays to this
+            self.corrStack = xr.Dataset()  # v2, set as xr.Dataset and append Xarrays to this
 
     # # #         self.imgStack.append(imgStack.copy())  # May need .copy() here?  # v1
-        self.imgStack[name] = imgStack.copy()  # v2 using xr.Dataset - NOTE THIS KILLS METRICS!
+        self.corrStack[name] = imgStack.copy()  # v2 using xr.Dataset - NOTE THIS KILLS METRICS!
 
     #     self.imgStack = xr.merge(corrStack)  # Merge to dataset - this should be OK for one set of runs, but might fail with multiple filters - need to stack as arrays.
 

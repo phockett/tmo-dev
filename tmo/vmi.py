@@ -479,6 +479,7 @@ class VMI(tb.tmoDataBase):
         Note:
         - dims = ['yc','xc'] by default, changing will flip image!
         - Should add a dim check here for consistency.
+        - name is currently not used for plotting, but should add this for flexibility - in some cases the cmap can be blown with multiple image sets on different scales.
 
         """
 
