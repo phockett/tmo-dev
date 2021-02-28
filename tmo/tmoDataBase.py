@@ -543,7 +543,8 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
                 pass
 
 
-    def hist(self, dim, bins = 'auto', filterOptions = None, keys = None, weights = None):
+    def hist(self, dim, bins = 'auto', filterOptions = None, keys = None,
+                weights = None, normBin = False):
         """
         Construct 1D histrograms using np.histogram.
 
@@ -593,6 +594,7 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
             for i in np.arange(0,d0Range):
                 freq, edges = np.histogram(d0[:,i], bins = binsW, weights = weightVals)
 
+                # Normalise by bin counts (shots)
                 if normBin:
                     freq = freq/freqBins
 
