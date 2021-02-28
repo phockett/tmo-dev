@@ -252,7 +252,7 @@ class tmoDataBase():
                 metrics['eShot'] = xInd.sum(1) - yInd.sum(1)  # Set 1D total hits case as difference?
                 metrics['eROI'] = np.c_[((xc>eROI[0]) & (xc<eROI[1])).sum(1), ((yc>eROI[0]) & (yc<eROI[1])).sum(1)]
 
-                metrics['eTot'] = np.c_[metrics['eShot'].sum(0), metrics['eROI'].sum(0)]
+                metrics['eTot'] = np.c_[metrics['eShotXY'].sum(0), metrics['eROI'].sum(0)]
 
             else:
                 metrics['eShotXY'] = None
