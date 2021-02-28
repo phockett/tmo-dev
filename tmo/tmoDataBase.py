@@ -209,6 +209,10 @@ class tmoDataBase():
             Define upper and lower limits (pixels) used for assessing electron hit data counts. Currently set for square ROI.
             Note default ROI set for detector area (as of tmolw0618 data).
 
+        Notes
+        -----
+        - 28/02/21  Added basic dim checks, and force (xc,yc) to int16 to save memory. May also want to implement for ion data.
+
         """
 
         # Default to all datasets
@@ -223,25 +227,36 @@ class tmoDataBase():
 
             metrics = {}
 
-            metrics['iShot'] = (~(np.asarray(self.data[key]['raw']['ktofIpk']) == -9999)).sum(1)
-            metrics['iTot'] = metrics['iShot'].sum()
+            if 'ktofIpk' in self.data[key]['dims']:
+                metrics['iShot'] = (~(np.asarray(self.data[key]['raw']['ktofIpk']) == -9999)).sum(1)
+                metrics['iTot'] = metrics['iShot'].sum()
+            else:
+                metrics['iShot'] = None
+                metrics['iTot'] = None
 
             # Electron data checks - may want to set processed data to var?
             # metrics['eCount'] = np.c_[(~(np.asarray(self.data[key]['raw']['xc']) == -9999)).sum(1), (~(np.asarray(self.data[key]['raw']['yc']) == -9999)).sum(1)]
 
-            xc = np.array(self.data[key]['raw']['xc'])
-            xInd = (xc>-9999) #eROI[0]) & (xc<eROI[1])
+            dtype = 'int16'
+            if 'xc' in self.data[key]['dims']:
+                xc = np.array(self.data[key]['raw']['xc'], dtype = dtype)
+                xInd = (xc>-9999) #eROI[0]) & (xc<eROI[1])
 
-            yc = np.array(self.data[key]['raw']['yc'])
-            yInd = (yc>-9999)  #(yc>eROI[0]) & (yc<eROI[1])
+                yc = np.array(self.data[key]['raw']['yc'], dtype = dtype)
+                yInd = (yc>-9999)  #(yc>eROI[0]) & (yc<eROI[1])
 
-    #         metrics['eShot'] = np.c_[(~(xc == -9999)).sum(1), (~(yc == -9999)).sum(1)]
-    #         metrics['eTot'] = np.c_[xc[xc>-9999].size, yc[yc>-9999].size]  # Totals
+        #         metrics['eShot'] = np.c_[(~(xc == -9999)).sum(1), (~(yc == -9999)).sum(1)]
+        #         metrics['eTot'] = np.c_[xc[xc>-9999].size, yc[yc>-9999].size]  # Totals
 
-            metrics['eShot'] = np.c_[xInd.sum(1), yInd.sum(1)]
-            metrics['eROI'] = np.c_[((xc>eROI[0]) & (xc<eROI[1])).sum(1), ((yc>eROI[0]) & (yc<eROI[1])).sum(1)]
+                metrics['eShot'] = np.c_[xInd.sum(1), yInd.sum(1)]
+                metrics['eROI'] = np.c_[((xc>eROI[0]) & (xc<eROI[1])).sum(1), ((yc>eROI[0]) & (yc<eROI[1])).sum(1)]
 
-            metrics['eTot'] = np.c_[metrics['eShot'].sum(0), metrics['eROI'].sum(0)]
+                metrics['eTot'] = np.c_[metrics['eShot'].sum(0), metrics['eROI'].sum(0)]
+
+            else:
+                metrics['eShot'] = None
+                metrics['eROI'] = None
+                metrics['eTot'] = None
 
     #         self.metrics[key] = metrics  # Set as new dict
             self.data[key]['metrics'] = metrics  # Add to existing data dict
@@ -277,8 +292,7 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
         """
         # Reset filter?
         if reset:
-            # self.filters = {'Default':{}}  # Set an empty value here, otherwise filtersetting will fail later for global settings!
-            self.filters = {}  # BUT... default case is annoying in cases where filterOptions are explicitly set!
+            self.filters = {'Default':{}}  # Set an empty value here, otherwise filtersetting will fail later for global settings!
 
         # Loop over input filterOptions and set
         for key,val in filterOptions.items():
