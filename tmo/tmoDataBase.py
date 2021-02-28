@@ -249,7 +249,10 @@ class tmoDataBase():
         #         metrics['eTot'] = np.c_[xc[xc>-9999].size, yc[yc>-9999].size]  # Totals
 
                 metrics['eShotXY'] = np.c_[xInd.sum(1), yInd.sum(1)]
-                metrics['eShot'] = xInd.sum(1) - yInd.sum(1)  # Set 1D total hits case as difference?
+                metrics['eShot'] = xInd.sum(1)  # Set as single channel
+                # metrics['eShot'] = xInd.sum(1) - yInd.sum(1)  # Set 1D total hits case as difference?
+                # metrics['eShot'] = (xInd.sum(1) + yInd.sum(1)) - (xInd.sum(1) - yInd.sum(1))  # Sum minus difference.
+                metrics['eMean'] = np.nanmean(xc)
                 metrics['eROI'] = np.c_[((xc>eROI[0]) & (xc<eROI[1])).sum(1), ((yc>eROI[0]) & (yc<eROI[1])).sum(1)]
 
                 metrics['eTot'] = np.c_[metrics['eShotXY'].sum(0), metrics['eROI'].sum(0)]
