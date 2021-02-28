@@ -138,6 +138,7 @@ class tmoDataBase():
         # 02/12/20: added basic try/except here to skip missing files.
         for key in self.runs['files'].keys():
             try:
+                print(f'* Reading file {self.runs['files'][key]}')
                 self.data[key] = {'raw':File(self.runs['files'][key])}
             except OSError:
                 self.data[key] = None
@@ -588,8 +589,11 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
             # For weighted case, 'auto' bin is not supported, so define bins first
             if (weights is not None) and (bins == 'auto'):
                 freqBins, binsW = np.histogram(d0[:,0], bins)  # TODO: fix dims here! Assuming 1st dim only.
+            elif isinstance(bins, str):
+                binsW = self.getDataDict(bins, key, returnType = 'data')         
             else:
                 binsW = bins
+                freqBins = np.ones(d0[:,0].size)
 
                 # This doesn't work due to ordering of np.histogram returns! Doh!
 #             curveDict[key] = {f'{key},{i}':hv.Curve((np.histogram(d0[:,i], bins)), dim, 'count') for i in np.arange(0,d0Range)}
