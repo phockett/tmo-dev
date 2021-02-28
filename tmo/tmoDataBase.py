@@ -584,7 +584,7 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
 
             # For weighted case, 'auto' bin is not supported, so define bins first
             if (weights is not None) and (bins == 'auto'):
-                freqBins, binsW = np.histogram(d0[:,i], bins)
+                freqBins, binsW = np.histogram(d0[:,0], bins)  # TODO: fix dims here! Assuming 1st dim only.
             else:
                 binsW = bins
 
