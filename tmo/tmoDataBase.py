@@ -212,7 +212,7 @@ class tmoDataBase():
         Notes
         -----
         - 28/02/21  Added basic dim checks, and force (xc,yc) to int16 to save memory. May also want to implement for ion data.
-
+                    TODO: check use of np.asarray typing vs. hdf5.astype('int') - latter should be preferred here?
         """
 
         # Default to all datasets
@@ -248,12 +248,14 @@ class tmoDataBase():
         #         metrics['eShot'] = np.c_[(~(xc == -9999)).sum(1), (~(yc == -9999)).sum(1)]
         #         metrics['eTot'] = np.c_[xc[xc>-9999].size, yc[yc>-9999].size]  # Totals
 
-                metrics['eShot'] = np.c_[xInd.sum(1), yInd.sum(1)]
+                metrics['eShotXY'] = np.c_[xInd.sum(1), yInd.sum(1)]
+                metrics['eShot'] = xInd.sum(1) - yInd.sum(1)  # Set 1D total hits case as difference?
                 metrics['eROI'] = np.c_[((xc>eROI[0]) & (xc<eROI[1])).sum(1), ((yc>eROI[0]) & (yc<eROI[1])).sum(1)]
 
                 metrics['eTot'] = np.c_[metrics['eShot'].sum(0), metrics['eROI'].sum(0)]
 
             else:
+                metrics['eShotXY'] = None
                 metrics['eShot'] = None
                 metrics['eROI'] = None
                 metrics['eTot'] = None
@@ -444,8 +446,14 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
         returnType : str, optional, default = 'dType'
             - 'dType' return data type to use as index.
             - 'data' return data array.
+            - 'lims' return min & max values only.
+            - 'unique' return list of unique values.
 
         08/12/20: first attempt, to replace repeated code in various base functions, and allow for multiple types (e.g. 'raw', 'metrics' etc.)
+
+        TODO: may also want to add datatype to array conversion routine, since this will otherwise default to float64 and can be memory hungy.
+        May also want to add chunking here too.
+
         """
 
         # Default to first dataset
@@ -523,7 +531,7 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
             # else:
             #     pass  # Just skip error cases for now
 
-            d0 = self.getDataDict(dim[0], key, returnType = 'data')[self.data[key]['mask']]
+            d0 = self.getDataDict(dim, key, returnType = 'data')[self.data[key]['mask']]
 
             try:
                 if self.__notebook__:
@@ -535,11 +543,15 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
                 pass
 
 
-    def hist(self, dim, bins = 'auto', filterOptions = None, keys = None):
+    def hist(self, dim, bins = 'auto', filterOptions = None, keys = None, weights = None):
         """
         Construct 1D histrograms using np.histogram.
 
+        28/02/21 Added option and handling for weights, pass as array or dim.
+        NOTE: this currently assumes 1D weights dim. For auto bins, these will be determined from dim values.
+
         """
+
         # Default to all datasets
         if keys is None:
             keys = self.runs['proc']
@@ -554,6 +566,12 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
             # d0 = np.array(self.data[key]['raw'][dim])[self.data[key]['mask']]
             d0 = self.getDataDict(dim, key, returnType = 'data')[self.data[key]['mask']]
 
+            # Set weights if passed as dim
+            if isinstance(weights, str):
+                weightVals = self.getDataDict(weights, key, returnType = 'data')[self.data[key]['mask']]
+            else:
+                weightVals = weights
+
             # Check cols, otherwise will be flatterned by np.histogram
             # TODO: move to separate function, and use .ndim (OK for h5 and np arrays)
             d0Range = 1
@@ -563,11 +581,22 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
             else:
                 d0 = d0[:,np.newaxis]
 
+            # For weighted case, 'auto' bin is not supported, so define bins first
+            if (weights is not None) and (bins == 'auto'):
+                freqBins, binsW = np.histogram(d0[:,i], bins)
+            else:
+                binsW = bins
+
                 # This doesn't work due to ordering of np.histogram returns! Doh!
 #             curveDict[key] = {f'{key},{i}':hv.Curve((np.histogram(d0[:,i], bins)), dim, 'count') for i in np.arange(0,d0Range)}
             curveDict[key] = {}
             for i in np.arange(0,d0Range):
-                freq, edges = np.histogram(d0[:,i], bins)
+                freq, edges = np.histogram(d0[:,i], bins = binsW, weights = weightVals)
+
+                if normBin:
+                    freq = freq/freqBins
+
+                # freq, edges = np.histogram(d0[:,i], bins)
 #                 curveDict[key][i] = hv.Curve((edges, freq), dim, 'count')
                 # curveDict[key][f'{i} ({key})'] = hv.Curve((edges, freq), dim, 'count')  # Keep run label here for histOverlay, although might be neater way
                 curveDict[key][(key, i)] = hv.Curve((edges, freq), kdims=dim, vdims='count') # Try as tuples, see http://holoviews.org/reference/containers/bokeh/NdOverlay.html
