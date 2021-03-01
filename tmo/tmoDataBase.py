@@ -99,7 +99,7 @@ class tmoDataBase():
         # Set file properties
         self.runs = {'fileBase':Path(fileBase),
                      'ext':ext,
-#                      'prefix':prefix,
+                     # 'prefix':prefix,
                      'fileList':fileList,
                      'runList':runList,
                      'files': {N:Path(fileBase, f'run{N}{fileSchema}.{ext}') for N in runList}
@@ -220,11 +220,11 @@ class tmoDataBase():
         if keys is None:
             keys = self.runs['proc']
 
-    #     if not hasattr(self, 'metrics'):
-    #         self.metrics = {}
+        #     if not hasattr(self, 'metrics'):
+        #         self.metrics = {}
 
         for key in keys:
-    #         self.metrics[key] = {}
+        #         self.metrics[key] = {}
 
             metrics = {}
 
@@ -264,15 +264,15 @@ class tmoDataBase():
                 metrics['eROI'] = None
                 metrics['eTot'] = None
 
-    #         self.metrics[key] = metrics  # Set as new dict
+                #         self.metrics[key] = metrics  # Set as new dict
             self.data[key]['metrics'] = metrics  # Add to existing data dict
 
-    # def setFilterRange(self, filterOptions = {}):
-    #     """
-    #     Set filters for a range of values/bins for a given data type.
-    #     """
-    #
-    #
+        # def setFilterRange(self, filterOptions = {}):
+        #     """
+        #     Set filters for a range of values/bins for a given data type.
+        #     """
+        #
+        #
 
     def setFilter(self, filterOptions = {}, reset = False):
         """
@@ -291,9 +291,9 @@ class tmoDataBase():
         TODO:
         - Ranges:
 
-e.g. Set for time scan...
-tRange = np.arange(test.min(), test.max(), 2e-3)
-laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n in range(0,tRange.size-1)}
+        e.g. Set for time scan...
+        tRange = np.arange(test.min(), test.max(), 2e-3)
+        laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n in range(0,tRange.size-1)}
 
         """
         # Reset filter?
@@ -487,8 +487,8 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
             else:
                 return dataDict  # Currently set to None if dim not found, may change later.
 
-    # def checkDims(testArray):
-    #     """Check if array is 2D"""
+        # def checkDims(testArray):
+        #     """Check if array is 2D"""
 
 #**** PLOTTING STUFF
 
@@ -582,7 +582,7 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
             d0Range = 1
             if len(d0.shape)>1:
                 d0Range = d0.shape[1]
-#                 kdims.append(f'{dim[1]} col')
+                # kdims.append(f'{dim[1]} col')
             else:
                 d0 = d0[:,np.newaxis]
 
@@ -590,13 +590,13 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
             if (weights is not None) and (bins == 'auto'):
                 freqBins, binsW = np.histogram(d0[:,0], bins)  # TODO: fix dims here! Assuming 1st dim only.
             elif isinstance(bins, str):
-                binsW = self.getDataDict(bins, key, returnType = 'data')         
+                binsW = self.getDataDict(bins, key, returnType = 'data')
             else:
                 binsW = bins
                 freqBins = np.ones(d0[:,0].size)
 
                 # This doesn't work due to ordering of np.histogram returns! Doh!
-#             curveDict[key] = {f'{key},{i}':hv.Curve((np.histogram(d0[:,i], bins)), dim, 'count') for i in np.arange(0,d0Range)}
+            # curveDict[key] = {f'{key},{i}':hv.Curve((np.histogram(d0[:,i], bins)), dim, 'count') for i in np.arange(0,d0Range)}
             curveDict[key] = {}
             for i in np.arange(0,d0Range):
                 freq, edges = np.histogram(d0[:,i], bins = binsW, weights = weightVals)
@@ -606,29 +606,29 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
                     freq = freq/freqBins
 
                 # freq, edges = np.histogram(d0[:,i], bins)
-#                 curveDict[key][i] = hv.Curve((edges, freq), dim, 'count')
+                # curveDict[key][i] = hv.Curve((edges, freq), dim, 'count')
                 # curveDict[key][f'{i} ({key})'] = hv.Curve((edges, freq), dim, 'count')  # Keep run label here for histOverlay, although might be neater way
                 curveDict[key][(key, i)] = hv.Curve((edges, freq), kdims=dim, vdims='count') # Try as tuples, see http://holoviews.org/reference/containers/bokeh/NdOverlay.html
 
-# TODO: consider best stacking here dict, holomap, ndoverlay...?
-#             if 'curve' in self.data[key].keys():
-#                 self.data[key]['curve'][dim] = hv.HoloMap(curveDict)
-#             else:
-#                 self.data[key]['curve'] = {dim:hv.HoloMap(curveDict)}
+            # TODO: consider best stacking here dict, holomap, ndoverlay...?
+            #             if 'curve' in self.data[key].keys():
+            #                 self.data[key]['curve'][dim] = hv.HoloMap(curveDict)
+            #             else:
+            #                 self.data[key]['curve'] = {dim:hv.HoloMap(curveDict)}
 
             if 'curve' in self.data[key].keys():
                 self.data[key]['curve'][dim] = hv.NdOverlay(curveDict[key], kdims = ['Run', 'Channel'])
             else:
                 self.data[key]['curve'] = {dim:hv.NdOverlay(curveDict[key], kdims = ['Run', 'Channel'])}
 
-# Basic case for 1D vars
-#             frequencies, edges = np.histogram(d0, bins)
+        # Basic case for 1D vars
+        #             frequencies, edges = np.histogram(d0, bins)
 
 
-#             if 'curve' in self.data[key].keys():
-#                 self.data[key]['curve'][dim] = hv.Curve((edges, frequencies), dim, 'count')
-#             else:
-#                 self.data[key]['curve'] = {dim:hv.Curve((edges, frequencies), dim, 'count')}
+        #             if 'curve' in self.data[key].keys():
+        #                 self.data[key]['curve'][dim] = hv.Curve((edges, frequencies), dim, 'count')
+        #             else:
+        #                 self.data[key]['curve'] = {dim:hv.Curve((edges, frequencies), dim, 'count')}
 
         if self.verbose['main']:
             print(f"Set self.data[key]['curve'] for dim={dim}.")
@@ -678,7 +678,7 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
         Optionally set ref dimension and filterOptions for raw data.
         """
 
-#         hexOpts = opts.HexTiles(width=600, height=400, tools=['hover'], colorbar=True)
+        # hexOpts = opts.HexTiles(width=600, height=400, tools=['hover'], colorbar=True)
         hexDict = {}
 
         if filterOptions is not None:
@@ -688,8 +688,8 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
         for key in self.runs['proc']:
             # Initially assume mask can be used directly, but set to all True if not passed
             # Will likely want more flexibility here later
-#             if mask is None:
-#             mask = np.ones_like(self.data[key]['raw'][dim[0]]).astype(bool)
+            # if mask is None:
+            # mask = np.ones_like(self.data[key]['raw'][dim[0]]).astype(bool)
 
             # Check mask exists, set if not
             # NOW set to always run, otherwise self.filter settings may be missed on update
@@ -716,7 +716,7 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
                 # For 1D data case
                 hexDict[key] = {(key, 0):hv.HexTiles((d0, d1), dim)}
 
-#             hexList[key] = {i:hv.HexTiles((d0, d1), dim).opts(hexOpts) for i in np.arange(0,d1Range-1)}
+            # hexList[key] = {i:hv.HexTiles((d0, d1), dim).opts(hexOpts) for i in np.arange(0,d1Range-1)}
             # hexDict[key] = {i:hv.HexTiles((d0, d1[:,i]), dim) for i in np.arange(0,d1Range)}
 
 
@@ -734,7 +734,7 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
             print(f"Set self.data[key]['hist2d'] for dim={dim}.")
 
 
-#         return hv.HoloMap(hexList, kdims = kdims)  # This doesn't work for nested case, but should be a work-around...?
+        # return hv.HoloMap(hexList, kdims = kdims)  # This doesn't work for nested case, but should be a work-around...?
 
     def image2d(self, dim = None, ref = None, filterOptions = None, bins = (np.arange(0, 1048.1, 1)-0.5,)*2):
         """
@@ -750,7 +750,7 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
 
         """
 
-#         hexOpts = opts.HexTiles(width=600, height=400, tools=['hover'], colorbar=True)
+        # hexOpts = opts.HexTiles(width=600, height=400, tools=['hover'], colorbar=True)
         imDict = {}
 
         if filterOptions is not None:
@@ -760,8 +760,8 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
         for key in self.runs['proc']:
             # Initially assume mask can be used directly, but set to all True if not passed
             # Will likely want more flexibility here later
-#             if mask is None:
-#             mask = np.ones_like(self.data[key]['raw'][dim[0]]).astype(bool)
+            # if mask is None:
+            # mask = np.ones_like(self.data[key]['raw'][dim[0]]).astype(bool)
 
             # Check mask exists, set if not
             if 'mask' not in self.data[key].keys():
@@ -781,4 +781,4 @@ laserFilter = {n:{'epics_las_fs14_target_time':[tRange[n], tRange[n+1]]} for n i
 
             self.data[key]['img'] = imDict[key]
 
-#         return hv.HoloMap(hexList, kdims = kdims)  # This doesn't work for nested case, but should be a work-around...?
+        # return hv.HoloMap(hexList, kdims = kdims)  # This doesn't work for nested case, but should be a work-around...?

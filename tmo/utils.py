@@ -19,26 +19,26 @@ def _checkDims(self, dataType = 'imgStack', dimsCheck = None, swapDims = None):
     Pass swapDims to provide (old) dims to swap with non-dimensional dims.
 
     """
-    
+
     # Set dataset
     testData = getattr(self, dataType)
 
-#     dimsND = []
-#     dimsMissing = []
-#     dimsOK = []
+    #     dimsND = []
+    #     dimsMissing = []
+    #     dimsOK = []
 
-#     for dim in dims:
-#         # Check if dim is dimensional/key dim
-#         if dim in testData.dims:
-# #             dims.pop()
-#             dimsOK.append(dim)
+    #     for dim in dims:
+    #         # Check if dim is dimensional/key dim
+    #         if dim in testData.dims:
+    # #             dims.pop()
+    #             dimsOK.append(dim)
 
-#         # Check if dim exists at all
-#         elif dim in list(testData.coords.keys()):
-#             dimsND.append(dim)
+    #         # Check if dim exists at all
+    #         elif dim in list(testData.coords.keys()):
+    #             dimsND.append(dim)
 
-#         else:
-#             dimsMissing.append(dim)
+    #         else:
+    #             dimsMissing.append(dim)
 
     # Check with sets
     dimsD = {*testData.dims} & {*dimsCheck}

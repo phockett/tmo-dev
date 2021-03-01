@@ -151,7 +151,7 @@ class VMIproc(vmi.VMI):
 
         # If dims is none, use 1st two axes from image stack as default
         if dims is None:
-#             dims = self.imgStack[filterSet].dims[0:2]
+            # dims = self.imgStack[filterSet].dims[0:2]
             dims = list(self.imgStack.dims)[-1:0:-1]  # Use this for consistency with base class.
                                                     # Note order is REVERSED!
 
@@ -167,7 +167,7 @@ class VMIproc(vmi.VMI):
         cList = []
         dMax = []
         for n, dim in enumerate(dims):
-    #         print(dim)
+            # print(dim)
             # Find nearest point, then indicies with np.where?  Bit ugly , but seems to work, although it shouldn't???
             # Should be a native Xarray method for this?
             nearestPoint = self.imgStack[filterSet][dim].sel({dim:imgCentre[n]}, method='nearest')
@@ -180,7 +180,7 @@ class VMIproc(vmi.VMI):
         self.centreInds['cList'] = cList
         self.centreInds['dMax'] = dMax
 
-    #         data.imgStack['signal'].xc[xInd]  # Can index INTO array with index.
+            # data.imgStack['signal'].xc[xInd]  # Can index INTO array with index.
 
     def setPolar(self):
         """
@@ -217,14 +217,14 @@ class VMIproc(vmi.VMI):
         contours = hv.Contours([circle(i) for i in np.linspace(0, rMax, nContour).round()], vdims='radius')
 
         # As polygons
-    #     hv.Polygons([{('x', 'y'): hv.Ellipse(0, 0, (i, i)).array(), 'z': i} for i in range(1, 10)[::-1]], vdims='z')
+        # hv.Polygons([{('x', 'y'): hv.Ellipse(0, 0, (i, i)).array(), 'z': i} for i in range(1, 10)[::-1]], vdims='z')
 
         # Centre point
         point = hv.Points([img.closest([(tuple(self.centreInds['input']))])]).opts(color='b', marker='x', size=10)
 
 
-    #     sampleStep = 2
-    #     display(hv.Image(im[:sampleStep:-1,:sampleStep:-1]) * contours)
+        # sampleStep = 2
+        # display(hv.Image(im[:sampleStep:-1,:sampleStep:-1]) * contours)
         hplot = img.hist() * contours * point
 
         # Code from showPlot()
@@ -286,8 +286,8 @@ class VMIproc(vmi.VMI):
             data['norm'] = data['XS'].where(data['mask']).sum('E')  # With preset mask
             gVal = data['norm'].sum()
 
-    #     elif norm['type'] is 'raw':
-    #         data['norm'] = ('run', np.ones(data.run.size))
+        # elif norm['type'] is 'raw':
+        #     data['norm'] = ('run', np.ones(data.run.size))
 
         else:
             data['norm'] = ('run', np.ones(data.run.size))
@@ -395,29 +395,29 @@ class VMIproc(vmi.VMI):
         IE = xr.DataArray(out['IE'], coords={'E':out['E'], 'run':self.runs['proc']},
                             dims = ['E','run'], name="IE")  #.expand_dims({'BLM':[0]})
 
-    #     procXR = xr.merge([IE, betas]).to_array().rename({'variable':'type'})  # With xr.merge
+        # procXR = xr.merge([IE, betas]).to_array().rename({'variable':'type'})  # With xr.merge
         procXR = IE.expand_dims({'BLM':[0]}).combine_first(betas)  # Direct combine to da
         procXR['XS'] = IE.copy()  # Set raw XS data too
-    #     procXR['rMask'] = procXR['XS'].where()
+        # procXR['rMask'] = procXR['XS'].where()
 
         procXR['pixel'] = ('E', np.arange(0, procXR['E'].size))  # Add pixel value index
 
-        # Norm intensities - NOW SET IN SEPARATE FUNCTION
-    #     procXR.attrs['normType'] = norm
-    #     if norm['type'] is 'max':
-    #         procXR['norm'] = ('run', procXR.sel(BLM=0).max('E'))  # Store per run values
-    #         gVal = procXR.sel(BLM=0).max()
-    #     elif norm['type'] is 'sum':
-    #         procXR['norm'] = ('run', procXR.sel(BLM=0).sum('E'))
-    #         gVal = procXR.sel(BLM=0).sum()
-    #     else:
-    #         procXR['norm'] = ('run', np.ones(procXR.run.size))
+            # Norm intensities - NOW SET IN SEPARATE FUNCTION
+        #     procXR.attrs['normType'] = norm
+        #     if norm['type'] is 'max':
+        #         procXR['norm'] = ('run', procXR.sel(BLM=0).max('E'))  # Store per run values
+        #         gVal = procXR.sel(BLM=0).max()
+        #     elif norm['type'] is 'sum':
+        #         procXR['norm'] = ('run', procXR.sel(BLM=0).sum('E'))
+        #         gVal = procXR.sel(BLM=0).sum()
+        #     else:
+        #         procXR['norm'] = ('run', np.ones(procXR.run.size))
 
-    #     # Renorm B00 (intensities) per run or globally.
-    #     if norm['scope'] is 'global':
-    #         procXR[0,:,:] /= gVal  # Renorm - note this currently assume dim ordering, not optimal!
-    #     else:
-    #         procXR[0,:,:] /= procXR['norm']
+        #     # Renorm B00 (intensities) per run or globally.
+        #     if norm['scope'] is 'global':
+        #         procXR[0,:,:] /= gVal  # Renorm - note this currently assume dim ordering, not optimal!
+        #     else:
+        #         procXR[0,:,:] /= procXR['norm']
 
 
         # Log results
@@ -465,8 +465,8 @@ class VMIproc(vmi.VMI):
                                                         coords={dims[0]:b0, dims[1]:b1, 'run':self.runs['proc']},
                                                         name = dset)
 
-    #     self.imgStack[filterSet + '-inv'] = out['inv']
-    #     self.imgStack[filterSet + '-fit'] = out['fit']
+        # self.imgStack[filterSet + '-inv'] = out['inv']
+        # self.imgStack[filterSet + '-fit'] = out['fit']
 
         # Rerun downsample to update self.reduce dataset
         self.downsample(step = step)

@@ -90,7 +90,7 @@ class corr(VMIproc):
 
             testData = np.concatenate(dimData, axis = 1)
 
-    #         testCov = np.cov(testData, rowvar=False) # , bias=True)
+            # testCov = np.cov(testData, rowvar=False) # , bias=True)
             testCC = np.corrcoef(testData, rowvar=False)
 
             # self.data[key]['metrics']['cc'] = testCC
@@ -227,37 +227,37 @@ class corr(VMIproc):
         return sparray.reshape(shape).sum(axis=axis)
 
 
-# ***********************************************************************
-# # TODO: finish this... just copied code over so far (22/12/20), need to implement
-# # - Sparse check/creation.
-# # - Set data for covariance, inc. filtering/multiple filters (for now wrap as per genVMIXmulti)
-# # - Downsample
-# # - Gen covar images & stack to Xarray (as per existing code)
-# # Protype code in https://pswww.slac.stanford.edu/jupyterhub/user/phockett/lab/tree/dev/VMI-correlations_sparse_tests_131220.ipynb
-#
-# # Generate correlations with ion data - loop over pixels, may want to aggregate/downsample first?
-# # WITH DOWNSAMPLING, only set for image dims (otherwise need to ds on correlated shots too)
-#
-# dsRatios = [4,4,1]  # Downsample dims [x,y,shot]
-#
-# s2ds = downsample3(s2, [4,4,1])
-#
-# # dsSize = [s2.shape[n]/dsRatios[n] for n in range(0,len(dsRatios))]
-# dsSize = s2ds.shape
-#
-# corrImg = np.zeros([dsSize[0], dsSize[1]])
-#
-# iData = np.array(data.data[key]['raw']['intensities'][shot, 0])
-#
-# # For large (x,y) this is slow... should be able to parallelise.
-# # Parallel over one dim might be faster too, although will involve a lot of redundant calcs.
-# # Efficient way to reduce array first?
-# iRange = [0,dsSize[0]]
-# for x in np.arange(iRange[0],iRange[1]):
-#     for y in np.arange(iRange[0],iRange[1]):
-#         corrImg[x,y] += np.corrcoef(np.c_[s2ds[x,y,:].todense(),iData], rowvar=False)[0,-1]
-#
-# **********************************************************************
+    # ***********************************************************************
+    # # TODO: finish this... just copied code over so far (22/12/20), need to implement
+    # # - Sparse check/creation.
+    # # - Set data for covariance, inc. filtering/multiple filters (for now wrap as per genVMIXmulti)
+    # # - Downsample
+    # # - Gen covar images & stack to Xarray (as per existing code)
+    # # Protype code in https://pswww.slac.stanford.edu/jupyterhub/user/phockett/lab/tree/dev/VMI-correlations_sparse_tests_131220.ipynb
+    #
+    # # Generate correlations with ion data - loop over pixels, may want to aggregate/downsample first?
+    # # WITH DOWNSAMPLING, only set for image dims (otherwise need to ds on correlated shots too)
+    #
+    # dsRatios = [4,4,1]  # Downsample dims [x,y,shot]
+    #
+    # s2ds = downsample3(s2, [4,4,1])
+    #
+    # # dsSize = [s2.shape[n]/dsRatios[n] for n in range(0,len(dsRatios))]
+    # dsSize = s2ds.shape
+    #
+    # corrImg = np.zeros([dsSize[0], dsSize[1]])
+    #
+    # iData = np.array(data.data[key]['raw']['intensities'][shot, 0])
+    #
+    # # For large (x,y) this is slow... should be able to parallelise.
+    # # Parallel over one dim might be faster too, although will involve a lot of redundant calcs.
+    # # Efficient way to reduce array first?
+    # iRange = [0,dsSize[0]]
+    # for x in np.arange(iRange[0],iRange[1]):
+    #     for y in np.arange(iRange[0],iRange[1]):
+    #         corrImg[x,y] += np.corrcoef(np.c_[s2ds[x,y,:].todense(),iData], rowvar=False)[0,-1]
+    #
+    # **********************************************************************
 
 
     def genCorrVMIXmulti(self, filterOptions={}, **kwargs):
@@ -348,20 +348,20 @@ class corr(VMIproc):
             keys = self.runs['proc']
 
         if filterOptions is not None:
-    #             print(filterOptions)
-    #             self.filterData(filterOptions = filterOptions)
+                # print(filterOptions)
+                # self.filterData(filterOptions = filterOptions)
             super().filterData(filterOptions = filterOptions)  # Use super() for case of single filter set. FOR CORR class this may not call correct parent version?
 
         # Check Sparse data is set - NOW set in main loop
         # UGLY
         # sList = ['sparse' in self.data[key].keys() for key in keys]
         # for item in sList:
-    #     for key in keys:
-    #         if not 'sparse' in self.data[key].keys():
-    #             if self.verbose['main']:
-    #                 print(f"Generating sparse data for dataset {key}")
-
-    #             self.setSparse(keys = [key], dims = dims)
+        # for key in keys:
+        #     if not 'sparse' in self.data[key].keys():
+        #         if self.verbose['main']:
+        #             print(f"Generating sparse data for dataset {key}")
+        #
+        #         self.setSparse(keys = [key], dims = dims)
 
         # For Poission bootstrap, weights will be generated for each dataset.
         # TODO: should check & propagate dims here too.
@@ -399,13 +399,13 @@ class corr(VMIproc):
 
             # Initially assume mask can be used directly, but set to all True if not passed
             # Will likely want more flexibility here later
-    #             if mask is None:
-    #             mask = np.ones_like(self.data[key]['raw'][dim[0]]).astype(bool)
+                # if mask is None:
+                # mask = np.ones_like(self.data[key]['raw'][dim[0]]).astype(bool)
 
 
             # Check mask exists, set if not
             if 'mask' not in self.data[key].keys():
-    #                 self.filterData(keys=[key])
+                    # self.filterData(keys=[key])
                 super().filterData(keys=[key])  # Use super() for case of single filter set.
 
             # Note flatten or np.concatenate here to set to 1D, not sure if function matters as long as ordering consistent?
@@ -425,7 +425,7 @@ class corr(VMIproc):
             metrics[key] = {'shots':self.data[key]['raw'][dims[0]].shape,
                             'selected':self.data[key]['mask'].sum(),
                             # 'gas':np.array(self.data[key]['raw']['gas']).sum(),  # This doesn't exist in new datasets, just remove for now.
-    #                         'events':self.data[key]['sparse'][:,:,self.data[key]['mask']].sum,  # This should be sum over (x,y, selected shots) SEEMS TO KILL EVERYTHING?
+                            # 'events':self.data[key]['sparse'][:,:,self.data[key]['mask']].sum,  # This should be sum over (x,y, selected shots) SEEMS TO KILL EVERYTHING?
                             'normType':normType,
                             'norm':normVals[-1]}
 
@@ -442,7 +442,7 @@ class corr(VMIproc):
 
             # Calculate covar data
             dataCorr = {}  # [] #np.empty(dataImgDS.shape[2])
-    #         corrStack = []  # Use this to hold Xarrays per run, then concat later.
+            # corrStack = []  # Use this to hold Xarrays per run, then concat later.
             for corrItem in corrDims:
                 # dataCorr.append(np.array(self.data[key]['raw'][item]))
                 dataCorr.update({corrItem: np.array(self.data[key]['raw'][corrItem])})
@@ -470,7 +470,7 @@ class corr(VMIproc):
                                 # if pFlag:
                                 #     weights = rng.poisson(lambdaP, d0.size)
 
-    #                             corrImg[x,y,col] += np.corrcoef(np.c_[dataImgDS[x,y,:].todense(), dataCorr[corrItem][:,col]], rowvar=False)[0,-1]  # No filter
+                                # corrImg[x,y,col] += np.corrcoef(np.c_[dataImgDS[x,y,:].todense(), dataCorr[corrItem][:,col]], rowvar=False)[0,-1]  # No filter
                                 corrImg[x,y,col] += np.corrcoef(np.c_[dataImgDS[x,y,:].todense()[self.data[key]['mask']], dataCorr[corrItem][self.data[key]['mask'],col]], rowvar=False)[0,-1]  # With filter
 
 
@@ -479,11 +479,11 @@ class corr(VMIproc):
                     stackDims.append(corrItem)
                     corrStack.append(xr.DataArray(corrImg, dims=stackDims, name = name,   #f'{name}_{key}',
                                                   coords={dims[0]:np.arange(0, dsSize[0]), dims[1]:np.arange(0, dsSize[1]), corrItem:range(0,dataCorr[corrItem].shape[1])}).expand_dims({'run': [key]}))
-    #                                         coords={dims[0]:np.arange(0, dsSize[0]), dims[1]:np.arange(0, dsSize[1]), 'col':col in range(0,dataCorr[corrItem].shape[1])}).expand_dims('run', key))
-
-    #                 corrStack[-1]['norm'] = ('run', [normVals[-1]])  # Attach single norm value for run - this works, but gives issues when converting to DS later.
-
-    #                 corrStack.append(corrImg)
+                    #                         coords={dims[0]:np.arange(0, dsSize[0]), dims[1]:np.arange(0, dsSize[1]), 'col':col in range(0,dataCorr[corrItem].shape[1])}).expand_dims('run', key))
+                    #
+                    # corrStack[-1]['norm'] = ('run', [normVals[-1]])  # Attach single norm value for run - this works, but gives issues when converting to DS later.
+                    #
+                    # corrStack.append(corrImg)
 
                     # corrStack[name] = imgStack.expand_dims('run', key)
 
