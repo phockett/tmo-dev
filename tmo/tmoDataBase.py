@@ -138,8 +138,9 @@ class tmoDataBase():
         # 02/12/20: added basic try/except here to skip missing files.
         for key in self.runs['files'].keys():
             try:
-                print(f"* Reading file {self.runs['files'][key]}")
+                # print(f"* Trying file {self.runs['files'][key]}")
                 self.data[key] = {'raw':File(self.runs['files'][key])}
+                # print('OK')
             except OSError:
                 self.data[key] = None
 
@@ -149,6 +150,8 @@ class tmoDataBase():
         self.runs['proc'] = []
         self.runs['invalid'] = []
         for key in self.data.keys():
+            print(f"* Trying file {self.runs['files'][key]}")
+
             if self.data[key] is not None:
                 self.data[key]['items'] = self.data[key]['raw'].keys()
                 self.data[key]['dims'] = {item:self.data[key]['raw'][item].shape for item in self.data[key]['raw'].keys()}
@@ -162,12 +165,14 @@ class tmoDataBase():
                         self.runs['invalid'].append(key)
                     else:
                         self.runs['proc'].append(key)
+                        print('OK')
                 else:
                     if keyDim not in self.data[key]['dims']:
                         print(f'*** WARNING: key {key} missing {keyDim} data, will be skipped.')
                         self.runs['invalid'].append(key)
                     else:
                         self.runs['proc'].append(key)
+                        print('OK')
             else:
                 print(f'*** WARNING: key {key} file missing, will be skipped.')
                 self.runs['invalid'].append(key)
@@ -586,10 +591,13 @@ class tmoDataBase():
             else:
                 d0 = d0[:,np.newaxis]
 
+            # Numpy hist bins options - use these for str checks vs. dims
+            npBinOpts = [‘auto’, ‘fd’, ‘doane’, ‘scott’, ‘stone’, ‘rice’, ‘sturges’, ‘sqrt’]
+
             # For weighted case, 'auto' bin is not supported, so define bins first
             if (weights is not None) and (bins == 'auto'):
                 freqBins, binsW = np.histogram(d0[:,0], bins)  # TODO: fix dims here! Assuming 1st dim only.
-            elif isinstance(bins, str):
+            elif isinstance(bins, str) and not (bins in npBinOpts):
                 binsW = self.getDataDict(bins, key, returnType = 'data')
             else:
                 binsW = bins
