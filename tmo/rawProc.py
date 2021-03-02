@@ -21,7 +21,8 @@ import tmo.inversion as inv
 # psana for grabbing raw data.
 import psana as ps
 
-class getRaw(tb.tmoDataBase, inv.VMIproc):
+# class getRaw(tb.tmoDataBase, inv.VMIproc):
+class getRaw(inv.VMIproc):
 
     def __init__(self, **kwargs):
         # Run __init__ from base class
