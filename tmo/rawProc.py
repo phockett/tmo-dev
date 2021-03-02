@@ -15,8 +15,8 @@ https://github.com/phockett/tmo-dev
 
 # Dev code for new class
 # Inherit from base class, just add evmi functionality here
-import tmoDataBase as tb
-import inversion as inv
+import tmo.tmoDataBase as tb
+import tmo.inversion as inv
 
 # psana for grabbing raw data.
 import psana as ps

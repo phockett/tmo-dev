@@ -18,6 +18,9 @@ def _checkDims(self, dataType = 'imgStack', dimsCheck = None, swapDims = None):
     Also test if dims are dimensional (key) or non-dimensional.
     Pass swapDims to provide (old) dims to swap with non-dimensional dims.
 
+    TODO:
+    - Dim ordering might be an issue here when swapping.
+
     """
 
     # Set dataset
