@@ -138,7 +138,7 @@ class tmoDataBase():
         # 02/12/20: added basic try/except here to skip missing files.
         for key in self.runs['files'].keys():
             try:
-                print(f'* Reading file {self.runs['files'][key]}')
+                print(f"* Reading file {self.runs['files'][key]}")
                 self.data[key] = {'raw':File(self.runs['files'][key])}
             except OSError:
                 self.data[key] = None
