@@ -592,7 +592,7 @@ class tmoDataBase():
                 d0 = d0[:,np.newaxis]
 
             # Numpy hist bins options - use these for str checks vs. dims
-            npBinOpts = [‘auto’, ‘fd’, ‘doane’, ‘scott’, ‘stone’, ‘rice’, ‘sturges’, ‘sqrt’]
+            npBinOpts = ['auto', 'fd', 'doane', 'scott', 'stone', 'rice', 'sturges', 'sqrt']
 
             # For weighted case, 'auto' bin is not supported, so define bins first
             if (weights is not None) and (bins == 'auto'):
