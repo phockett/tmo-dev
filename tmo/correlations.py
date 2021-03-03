@@ -13,8 +13,8 @@ https://github.com/phockett/tmo-dev
 
 # Dev code for new class
 # Inherit from base class, just add evmi functionality here
-import tmoDataBase as tb
-from inversion import VMIproc  # VMI processing class - this has imaging methods + multilevel filtering.
+import tmo.tmoDataBase as tb
+from tmo.inversion import VMIproc  # VMI processing class - this has imaging methods + multilevel filtering.
 
 import xarray as xr
 import holoviews as hv
