@@ -115,7 +115,7 @@ class tmoDataBase():
             self.verbose['sub'] = 0
 
 #**** IO
-    def readFiles(self, keyDim = None):
+    def readFiles(self, keyDim = None, runMetrics = True):
         """
         Read (preprocessed) data from h5 files.
 
@@ -178,11 +178,12 @@ class tmoDataBase():
                 self.runs['invalid'].append(key)
 
         # Run metrics
-        try:
-            self.runMetrics()
-        except KeyError as err:
-            print(f'*** WARNING: {err}')
-            print('Skipped runMetrics() for dataset.')
+        if runMetrics:
+            try:
+                self.runMetrics()
+            except KeyError as err:
+                print(f'*** WARNING: {err}')
+                print('Skipped runMetrics() for dataset.')
 
 
         if self.verbose['main']:
