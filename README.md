@@ -1,6 +1,12 @@
 # tmo-dev
 Dev and scratch space for tmo analysis routines dev.
 
+**SACLA branch (May 2021)**
+
+- Minor IO modifications to work with SACLA data.
+- Some additional SACLA-specific routines added. Thanks to the SACLA team for these!
+
+
 ## Overview
 
 Aims: develop some python classes for high(ish) level data analysis, including interactive plotting.

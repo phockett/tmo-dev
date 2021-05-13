@@ -92,7 +92,7 @@ class tmoDataBase():
     """
 
 
-    __version__ = '0.0.1'
+    self.__version__ = __version__
     __notebook__ = isnotebook()
 
     def __init__(self, fileBase = None, ext = 'h5', runList = None, fileSchema=None, fileList=None, verbose = 1):
