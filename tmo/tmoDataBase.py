@@ -123,7 +123,7 @@ class tmoDataBase():
                      'runList':runList,
                      # 'files': {N:Path(fileBase, f'run{N}{fileSchema}.{ext}') for N in runList}  # For SLAC TMO runs
                      # 'files': {N:Path(fileBase, f'aq{N:03.0f}{fileSchema}.{ext}') for N in runList} # For SACLA runs
-                     'files': {N:Path(baseDir, fileSchema.format(N=N) + f'.{ext}') for N in runList}  # With generic format string set
+                     'files': {N:Path(fileBase, fileSchema.format(N=N) + f'.{ext}') for N in runList}  # With generic format string set
                      # 'files': self.getFiles(ext=ext, runList=runList, fileSchema=fileSchema, fileList=fileList)
                      }
 
