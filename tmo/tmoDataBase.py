@@ -37,7 +37,8 @@ hv.extension('bokeh', 'matplotlib')
 #
 #
 
-
+# Local imports 
+from .sacla.sacla import setup, calibration
 
 
 # Set some default plot options
@@ -143,10 +144,11 @@ class tmoDataBase():
         if fileSchema.startswith('aq') or (accelerator=='sacla'):
             self.accelerator = 'sacla'
             print(f"Setting additional params for {self.accelerator}")
-            from .sacla.sacla import setup, calibration
+
+            self.setup = setup
+            self.calibration = calibration
 
             self.setup()
-
 
 #**** IO
     # TO DO: write proper file IO here with dir scan!

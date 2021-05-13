@@ -4,5 +4,11 @@ holoviews
 h5py
 
 # Optional functionality
-scipy
-xarray
+#
+# TODO: reformat as extras_require = {
+#    "numpy": ["numpy"], ...}
+#
+# https://stackoverflow.com/a/27361558
+#
+#scipy
+#xarray
