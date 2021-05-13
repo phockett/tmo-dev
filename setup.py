@@ -17,7 +17,7 @@ with open('tmo/__init__.py', 'r') as f:
 with open('README.md', 'r', encoding='utf-8') as f:
     readme = f.read()
 
-REQUIRES = ['numpy','holoviews']
+REQUIRES = []
 
 setup(
     name='tmo-dev',
@@ -27,5 +27,5 @@ setup(
     author_email='',
     description='SLAC TMO data analysis, and related.',
     packages=find_packages(),
-    install_requires=[],
+    install_requires=REQUIRES,
 )
