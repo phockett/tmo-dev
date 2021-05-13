@@ -77,6 +77,8 @@ class tmoDataBase():
 
     Reads h5py files & plots various properties & correlations using Holoviews.
 
+    13/05/21 v0.0.1-sacla, updates + mods for SACLA data.
+
     18/11/20 v0.0.1
 
     Paul Hockett
@@ -95,14 +97,34 @@ class tmoDataBase():
     # self.__version__ = __version__
     __notebook__ = isnotebook()
 
-    def __init__(self, fileBase = None, ext = 'h5', runList = None, fileSchema=None, fileList=None, verbose = 1):
+    def __init__(self, fileBase = None, ext = 'h5', runList = None, fileSchema='aq{N:03.0f}.{ext}', fileList=None, verbose = 1):
+        """
+        Files to read defined by:
+
+        - fileBase: base dir.
+        - ext: file type/extension, e.g. 'h5'
+        - runList: list of runs to read, e.g. [96,97,105]
+        - fileSchema: format string to generate file names using runList items
+            - For SLAC TMO, e.g. 'run{N}_preproc_elecv2', where the tail may change.
+            - For SACLA, 'aq{N:03.0f}'
+            - NOTE this has changed since original version. Dir scan + pattern matching should also be implemented here.
+
+        """
+
+
+        if verbose:
+            print(f'Running for file pattern: {fileSchema}')
+
         # Set file properties
         self.runs = {'fileBase':Path(fileBase),
                      'ext':ext,
                      # 'prefix':prefix,
                      'fileList':fileList,
                      'runList':runList,
-                     'files': {N:Path(fileBase, f'run{N}{fileSchema}.{ext}') for N in runList}
+                     # 'files': {N:Path(fileBase, f'run{N}{fileSchema}.{ext}') for N in runList}  # For SLAC TMO runs
+                     # 'files': {N:Path(fileBase, f'aq{N:03.0f}{fileSchema}.{ext}') for N in runList} # For SACLA runs
+                     'files': {N:Path(baseDir, fileSchema.format(N=N) + f'.{ext}') for N in runList}  # With generic format string set
+                     # 'files': self.getFiles(ext=ext, runList=runList, fileSchema=fileSchema, fileList=fileList)
                      }
 
         # Set default data dicts
@@ -115,6 +137,21 @@ class tmoDataBase():
             self.verbose['sub'] = 0
 
 #**** IO
+    # TO DO: write proper file IO here with dir scan!
+    # def getFiles(self, ext='h5', runList = None, fileSchema=None, fileList=None):
+    #
+    #     if
+    #         {N:Path(fileBase, f'run{N}{fileSchema}.{ext}') for N in runList}
+    #
+    #  Get files by type from dir
+    #  fileList = [os.path.join(fileBase, f) for f in os.listdir(fileBase) if f.endswith(fType)]
+    #
+    #  Subselect from list by number - rather ugly, should use sets or re?
+    #  runList = [95, 100, 46]
+    #
+    #  for N in runList:
+    #     [print(item) for item in fileList if item.endswith('aq{0:03.0f}.{1}'.format(N,ext))]
+
     def readFiles(self, keyDim = None, runMetrics = True):
         """
         Read (preprocessed) data from h5 files.
