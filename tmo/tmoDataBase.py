@@ -97,7 +97,8 @@ class tmoDataBase():
     # self.__version__ = __version__
     __notebook__ = isnotebook()
 
-    def __init__(self, fileBase = None, ext = 'h5', runList = None, fileSchema='aq{N:03.0f}.{ext}', fileList=None, verbose = 1):
+    def __init__(self, fileBase = None, ext = 'h5', runList = None, fileSchema='aq{N:03.0f}',
+                 fileList=None, verbose = 1, accelerator = 'sacla'):
         """
         Files to read defined by:
 
@@ -136,6 +137,17 @@ class tmoDataBase():
         if self.verbose['sub'] < 0:
             self.verbose['sub'] = 0
 
+        # Additional setup for SACLA data
+        # Assume from filenames, or via additional flag.
+        # TODO: should just generalise for all cases, force by accelerator name.
+        if fileSchema.startswith('aq') or (accelerator=='sacla'):
+            self.accelerator = 'sacla'
+            print(f"Setting additional params for {self.accelerator}")
+            from .sacla.sacla import setup, calibration
+
+            self.setup()
+
+
 #**** IO
     # TO DO: write proper file IO here with dir scan!
     # def getFiles(self, ext='h5', runList = None, fileSchema=None, fileList=None):
@@ -164,6 +176,8 @@ class tmoDataBase():
             Defaults to 'energies' or 'gmd_energy'.
             Probably want to implement a more careful/thorough method here in future!
 
+        NOTE: this currently leaves hdf5 filestreams open for reading later, which might be bad practice. Not sure if there is a better way for handling multiple large files and data subselection?
+
         """
 
         # Set data per run
@@ -176,7 +190,7 @@ class tmoDataBase():
         for key in self.runs['files'].keys():
             try:
                 # print(f"* Trying file {self.runs['files'][key]}")
-                self.data[key] = {'raw':File(self.runs['files'][key])}
+                self.data[key] = {'raw':File(self.runs['files'][key],'r')}
                 # print('OK')
             except OSError:
                 self.data[key] = None
@@ -197,8 +211,8 @@ class tmoDataBase():
                 # TODO: use unified dict or sets to check consistent dims over all datasets.
                 # 25/11/20: hacked in additional passed dim check, UGLY.
                 if keyDim is None:
-                    if ('energies' not in self.data[key]['dims']) and ('gmd_energy' not in self.data[key]['dims']):
-                        print(f'*** WARNING: key {key} missing energies data, will be skipped.')
+                    if ('energies' not in self.data[key]['dims']) and ('gmd_energy' not in self.data[key]['dims']) and ('fel_status' not in self.data[key]['dims']):
+                        print(f'*** WARNING: key {key} missing default keyDims, will be skipped.')
                         self.runs['invalid'].append(key)
                     else:
                         self.runs['proc'].append(key)
