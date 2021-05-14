@@ -260,6 +260,7 @@ class tmoDataBase():
             #     # In testing this seems OK, but may need explicit copy here?
             #     self.data[key]['scRaw'] = self.data[key]['raw']
             #     del self.data[key]['raw']
+            
 
 
 
@@ -438,6 +439,15 @@ class tmoDataBase():
                     dim = 'gmd_energy'
                 elif 'energies' in self.data[key]['dims']:
                     dim = 'energies'
+                
+                # SACLA default fields for raw & process data (MIGHT CHANGE!)
+                elif 'tagevent' in self.data[key]['dims']:
+                    dim = 'tagevent'
+                
+                elif 'tagID' in self.data[key]['dims']:
+                    dim = 'tagID'
+                    
+                    
                 else:
                     print(f"Missing dims for filtering: {dim}, and defaults not present.")
 
@@ -510,7 +520,7 @@ class tmoDataBase():
             self.data[key]['mask'] = mask  # For single filter this is OK, for multiples see vmi version.
 
 
-    def getDataDict(self, dim, key = None, dTypes = None, returnType = 'dType', dropna = True):
+    def getDataDict(self, dim, key = None, dTypes = None, returnType = 'dType', dropna = False):
         """
         Return specific dataset from various dictionaries by dimension name.
 
@@ -533,6 +543,8 @@ class tmoDataBase():
         dropna : bool, optional, default = True
             Drop Nans in data?
             These cause issues for np.hist with 'auto' binning.
+            But... in current code with basic masking, this breaks mask if array sizes are inconsistent.
+            Better to filter out with ranges?
 
         08/12/20: first attempt, to replace repeated code in various base functions, and allow for multiple types (e.g. 'raw', 'metrics' etc.)
 

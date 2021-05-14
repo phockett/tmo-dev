@@ -29,6 +29,8 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
     Convert raw SACLA data from h5 file to per-shot formatting, return as Pandas DataFrame.
 
     Defaults to 'scRaw' input data and 'raw' output for interoperability with existing codebase.
+    
+    Also resets global indexers self.data[key]['items'] and self.data[key]['dims'] for consistency with filters etc.
 
     Parameters
     ----------
@@ -107,3 +109,8 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
 
         #### now combine the data from each laser shot into a large dataframe
         self.data[key][dTypeOut] = pd.DataFrame(np.vstack(data_per_shot), columns=['tagID','delay','tof','vx','vy','FEL_int','LAS_int','x','y'])
+        
+        # Also reset dim indexes, to avoid inconsistencies later.
+        # UGLY!!!
+        self.data[key]['items'] = self.data[key][dTypeOut].keys()
+        self.data[key]['dims'] = {item:self.data[key][dTypeOut][item].shape for item in self.data[key]['raw'].keys()}
