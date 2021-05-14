@@ -1,0 +1,4 @@
+*.log
+*.pyc
+.ipynb_checkpoints
+tmo_dev.egg-info/
