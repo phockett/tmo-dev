@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 
 # TODO: param setting, IO from JSON file?
 # def setParams(self, params = None):
@@ -16,13 +19,16 @@ def setup(self):
                              'DelayA':6.66666,'DelayB':-6.66666,'DelayC':-5.688,'ManualDelayShift':244360,
                              'RadialVelocityScaleCoefficient':1.18}
 
-    self.dType.extend('df')
+    # self.dTypes.extend(['scRaw', 'df'])
+    self.dTypes.extend(['df'])
 
 
 
-def calibration(self, params = None, keys = None):
+def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 'raw'):
     """
     Convert raw SACLA data from h5 file to per-shot formatting, return as Pandas DataFrame.
+
+    Defaults to 'scRaw' input data and 'raw' output for interoperability with existing codebase.
 
     Parameters
     ----------
@@ -59,15 +65,15 @@ def calibration(self, params = None, keys = None):
 
     for key in keys:
 
-        hdf = self.data[key]['raw']
+        hdf = self.data[key][dTypeIn]
         ### open the file
         # with h5py.File(r'C:\Users\mb\Documents\FelixDPhil\SACLA 2021\BromoThiophene\aq092_merged.h5', 'r') as hdf:
         # with h5py.File(path + h5Filename, 'r') as hdf:
         data = {}
         #### iterate over each dataset in the file, and load them all
-        for key in list(hdf.keys()):
-            print(key)
-            data[key] = np.array(hdf[key])
+        for dimKey in list(hdf.keys()):
+            print(dimKey)
+            data[dimKey] = np.array(hdf[dimKey])
 
 
         #### now restructure data into the sort of format we want
@@ -100,4 +106,4 @@ def calibration(self, params = None, keys = None):
                     data_per_shot.append(dataunit)
 
         #### now combine the data from each laser shot into a large dataframe
-        self.data[key]['df'] = pd.DataFrame(np.vstack(data_per_shot), columns=['tagID','delay','tof','vx','vy','FEL_int','LAS_int','x','y'])
+        self.data[key][dTypeOut] = pd.DataFrame(np.vstack(data_per_shot), columns=['tagID','delay','tof','vx','vy','FEL_int','LAS_int','x','y'])

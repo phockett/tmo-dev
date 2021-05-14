@@ -37,9 +37,6 @@ hv.extension('bokeh', 'matplotlib')
 #
 #
 
-# Local imports 
-from .sacla.sacla import setup, calibration
-
 
 # Set some default plot options
 def setPlotDefaults(fSize = [800,400], imgSize = 500):
@@ -94,9 +91,14 @@ class tmoDataBase():
 
     """
 
-
     # self.__version__ = __version__
     __notebook__ = isnotebook()
+
+    # Setup optional local imports
+    # from .sacla import sacla  # This method DOESN"T work for self.fun(), should write as full function calls, or proper subclass, instead?
+                                # Could also monkeypatch at __init__, but probably not a good idea.
+    from .sacla.sacla import setup, calibration  # Bind directly at class instantiation. This works.
+
 
     def __init__(self, fileBase = None, ext = 'h5', runList = None, fileSchema='aq{N:03.0f}',
                  fileList=None, verbose = 1, accelerator = 'sacla'):
@@ -145,8 +147,8 @@ class tmoDataBase():
             self.accelerator = 'sacla'
             print(f"Setting additional params for {self.accelerator}")
 
-            self.setup = setup
-            self.calibration = calibration
+            # self.setup = self.sacla.setup   # This doesn't work for direct self.method(self) binds - but could monkeypatch here.
+            # self.calibration = self.sacla.calibration
 
             self.setup()
 
@@ -192,6 +194,11 @@ class tmoDataBase():
         for key in self.runs['files'].keys():
             try:
                 # print(f"* Trying file {self.runs['files'][key]}")
+                # For SACLA case raw data has some different dims, so push it elsewhere as a quick fix
+                # Should remove hardcoded 'raw' dType refs for a proper fix.
+                # if self.accelerator is 'scala':
+                #     self.data[key] = {'scRaw':File(self.runs['files'][key],'r')}
+                # else:
                 self.data[key] = {'raw':File(self.runs['files'][key],'r')}
                 # print('OK')
             except OSError:
@@ -243,6 +250,17 @@ class tmoDataBase():
             print(f"Read {len(self.data)} files.")
             print(f"Good datasets: {self.runs['proc']}")
             print(f"Invalid datasets: {self.runs['invalid']}")
+
+        # For SACLA case raw data has some different dims, so push it elsewhere as a quick fix
+        # Should remove hardcoded 'raw' dType refs for a proper fix.
+        if self.accelerator is 'sacla':
+            for key in self.runs['proc']:
+                self.data[key]['scRaw'] = self.data[key].pop('raw')
+
+            #     # In testing this seems OK, but may need explicit copy here?
+            #     self.data[key]['scRaw'] = self.data[key]['raw']
+            #     del self.data[key]['raw']
+
 
 
 #**** ANALYSIS
@@ -516,6 +534,8 @@ class tmoDataBase():
 
         TODO: may also want to add datatype to array conversion routine, since this will otherwise default to float64 and can be memory hungy.
         May also want to add chunking here too.
+
+        TO FIX: dTypes checking buggy, for multiple matched dTypes only returns last matching item.
 
         """
 
