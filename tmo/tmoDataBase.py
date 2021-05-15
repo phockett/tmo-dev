@@ -651,10 +651,16 @@ class tmoDataBase():
 
 
     def hist(self, dim, bins = 'auto', filterOptions = None, keys = None,
-                weights = None, normBin = False):
+                weights = None, normBin = False, normTotal = False):
         """
         Construct 1D histrograms using np.histogram.
 
+        Norm options: 
+            - normBin = False, 
+            Normalise by # shots (SLAC data format only)
+            - normTotal = False
+            Normalise by sum of values.
+        
         28/02/21 Added option and handling for weights, pass as array or dim.
         NOTE: this currently assumes 1D weights dim. For auto bins, these will be determined from dim values.
 
@@ -707,9 +713,12 @@ class tmoDataBase():
             for i in np.arange(0,d0Range):
                 freq, edges = np.histogram(d0[:,i], bins = binsW, weights = weightVals)
 
-                # Normalise by bin counts (shots)
+                # Normalise by bin counts (shots) SLAC data format only!
                 if normBin:
                     freq = freq/freqBins
+                    
+                if normTotal:
+                    freq = freq/freq.sum()
 
                 # freq, edges = np.histogram(d0[:,i], bins)
                 # curveDict[key][i] = hv.Curve((edges, freq), dim, 'count')

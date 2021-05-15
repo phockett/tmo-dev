@@ -74,7 +74,7 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
         data = {}
         #### iterate over each dataset in the file, and load them all
         for dimKey in list(hdf.keys()):
-            print(dimKey)
+#             print(dimKey)
             data[dimKey] = np.array(hdf[dimKey])
 
 

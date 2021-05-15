@@ -484,7 +484,7 @@ class VMI(tb.tmoDataBase):
 
 
     def showImgSet(self, run = None, name = 'signal', clims = None, hist = True, dims = None,
-                    swapDims = None, returnImg = False):
+                    swapDims = None, returnImg = False, **restack):
         """
         Crude wrapper for hv.HoloMap for images - basically as per showImg(), but full map.
 
@@ -512,7 +512,7 @@ class VMI(tb.tmoDataBase):
             self._checkDims(dataType = 'imgStack', dimsCheck = dims, swapDims = swapDims)
 
         # Firstly set to an hv.Dataset
-        imgDS = hv.Dataset(self.restackVMIdataset())
+        imgDS = hv.Dataset(self.restackVMIdataset(**restack))
 
         # Then a HoloMap of images
         hvImg = imgDS.to(hv.Image, kdims=dims).opts(colorbar=True)
