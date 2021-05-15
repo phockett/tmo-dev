@@ -651,7 +651,7 @@ class tmoDataBase():
 
 
     def hist(self, dim, bins = 'auto', filterOptions = None, keys = None,
-                weights = None, normBin = False, normTotal = False):
+                weights = None, normBin = False, normTotal = False, ):
         """
         Construct 1D histrograms using np.histogram.
 
@@ -715,10 +715,16 @@ class tmoDataBase():
 
                 # Normalise by bin counts (shots) SLAC data format only!
                 if normBin:
-                    freq = freq/freqBins
+                    if self.accelerator == 'sacla':
+                        # TO DO - add proper metrics for SACLA data!
+                        freq = freq/np.unique(self.getDataDict('tagID', key, returnType = 'data')).size
+                    else:
+                        # For SLAC data
+                        freq = freq/freqBins
                     
                 if normTotal:
                     freq = freq/freq.sum()
+                    
 
                 # freq, edges = np.histogram(d0[:,i], bins)
                 # curveDict[key][i] = hv.Curve((edges, freq), dim, 'count')
