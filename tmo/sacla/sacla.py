@@ -57,6 +57,13 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
     # Quick hack with defaults hard-coding here for now!
     if params is None:
         params = self.saclaCalibParams
+        
+    else:
+        # Update
+        for k, v in params.items():
+            self.saclaCalibParams[k] = v
+            
+        params = self.saclaCalibParams
 
     # Default to all datasets
     if keys is None:
