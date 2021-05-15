@@ -18,6 +18,24 @@ Demos are [available in HTML format](https://phockett.github.io/tmo-dev/demos/in
 To many use of any of this, you'll need both the tmo-dev source code from Github, and also to set up your own Anaconda environment to install the additional packages required. General instructions are on the [base class demo page](https://phockett.github.io/tmo-dev/demos/classDemo_191120.html)  and there's an [Anaconda + package guide from SLAC here](https://confluence.slac.stanford.edu/display/PSDM/Installing+Your+Own+Python+Package).
 
 
+## Basic install
+
+From source:
+
+```
+git clone --branch sacla git@github.com:phockett/tmo-dev.git
+python -m pip install -e tmo-dev
+```
+
+Build a Conda env:
+
+```
+conda create -n tmo-dev python=3.7
+conda activate tmo-dev
+conda install ipykernel scipy matplotlib holoviews h5py xarray
+conda install -c conda-forge sparse
+```
+
 ## Releases
 
 - 04/12/20 [v0.0.1. Basic working version for low-level data analysis + VMI image processing.](https://github.com/phockett/tmo-dev/releases/tag/v0.0.1) (Tested on LW06, v2, v4, v5 preprocessed data.)
