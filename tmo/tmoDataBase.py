@@ -16,6 +16,8 @@ import numpy as np
 from h5py import File
 from pathlib import Path
 
+import xarray as xr  # Currently only for histND, which may change, and this could be optional.
+
 # HV imports
 import holoviews as hv
 from holoviews import opts
@@ -260,7 +262,7 @@ class tmoDataBase():
             #     # In testing this seems OK, but may need explicit copy here?
             #     self.data[key]['scRaw'] = self.data[key]['raw']
             #     del self.data[key]['raw']
-            
+
 
 
 
@@ -439,15 +441,15 @@ class tmoDataBase():
                     dim = 'gmd_energy'
                 elif 'energies' in self.data[key]['dims']:
                     dim = 'energies'
-                
+
                 # SACLA default fields for raw & process data (MIGHT CHANGE!)
                 elif 'tagevent' in self.data[key]['dims']:
                     dim = 'tagevent'
-                
+
                 elif 'tagID' in self.data[key]['dims']:
                     dim = 'tagID'
-                    
-                    
+
+
                 else:
                     print(f"Missing dims for filtering: {dim}, and defaults not present.")
 
@@ -655,12 +657,12 @@ class tmoDataBase():
         """
         Construct 1D histrograms using np.histogram.
 
-        Norm options: 
-            - normBin = False, 
+        Norm options:
+            - normBin = False,
             Normalise by # shots (SLAC data format only)
             - normTotal = False
             Normalise by sum of values.
-        
+
         28/02/21 Added option and handling for weights, pass as array or dim.
         NOTE: this currently assumes 1D weights dim. For auto bins, these will be determined from dim values.
 
@@ -721,10 +723,10 @@ class tmoDataBase():
                     else:
                         # For SLAC data
                         freq = freq/freqBins
-                    
+
                 if normTotal:
                     freq = freq/freq.sum()
-                    
+
 
                 # freq, edges = np.histogram(d0[:,i], bins)
                 # curveDict[key][i] = hv.Curve((edges, freq), dim, 'count')
@@ -903,3 +905,32 @@ class tmoDataBase():
             self.data[key]['img'] = imDict[key]
 
         # return hv.HoloMap(hexList, kdims = kdims)  # This doesn't work for nested case, but should be a work-around...?
+
+
+    def histND(self, keys = None, dims = [], bins = None, dType = 'raw', filterOptions = None):
+        """ND histogram to Xarray."""
+
+        if filterOptions is not None:
+            self.filterData(filterOptions = filterOptions)
+
+        # Default to all datasets
+        if keys is None:
+            keys = self.runs['proc']
+
+        xrList = []
+        for key in keys:
+            # dataSubset = [data.data[runs[0]]['raw'][dim] for dim in dims]
+            histND = np.histogramdd(self.data[key][dType][dims].to_numpy(), bins = bins)  # OK with .to_numpy() for Pandas, may need to loop over dims for H5?
+
+            # Convert to xr
+            coords = {dims[n]:(dims[n], item[:-1]) for n,item in enumerate(histND[1])}
+        #     xrList.append(xr.DataArray(histND[0], dims = dims, coords = coords, name = run).expand_dims(run=[run]))  # Int name gives plotting issues later!!!
+            xrList.append(xr.DataArray(histND[0], dims = dims, coords = coords).expand_dims(run=[key]))
+
+        # Stack over runs
+        xrRuns = xr.concat(xrList, dim='run').rename('ND hist')
+
+        self.data['ndhist'] = xrRuns  # Set to self for further use. May want to return instead?
+
+        if self.verbose['main']:
+            print(f"Set self.data['ndhist'] Xarray for dims={dims}, keys={keys}.")
