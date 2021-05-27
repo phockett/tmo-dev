@@ -29,7 +29,7 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
     Convert raw SACLA data from h5 file to per-shot formatting, return as Pandas DataFrame.
 
     Defaults to 'scRaw' input data and 'raw' output for interoperability with existing codebase.
-    
+
     Also resets global indexers self.data[key]['items'] and self.data[key]['dims'] for consistency with filters etc.
 
     Parameters
@@ -50,6 +50,12 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
 
     Notebook from Felix Allum, likely with some prior credit to others too!
 
+    Input data is from SACLA preprocessor, currently formatted (May 2021) as HDF5, with keys ['delay_calibrated', 'delay_jitter', 'delay_motor', 'delay_offset', 'fel_intensity', 'fel_shutter', 'fel_status', 'laser_shutter', 'nions', 'nlistpos', 'tagevent', 'tma_flag', 'tof', 'xpos', 'ypos']
+    Here all values are recorded per shot (==one tagID), except for tof, xpos and ypos, which can have multiple entries per shot (==multiple ion events).
+
+    Output data is reformatted to a Pandas dataframe, with *all items* given over the full set of events.
+
+    26/05/21 Added 'shot' metric, generally useful elsewhere.
     13/05/21 v1
 
     """
@@ -57,12 +63,12 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
     # Quick hack with defaults hard-coding here for now!
     if params is None:
         params = self.saclaCalibParams
-        
+
     else:
         # Update
         for k, v in params.items():
             self.saclaCalibParams[k] = v
-            
+
         params = self.saclaCalibParams
 
     # Default to all datasets
@@ -94,7 +100,7 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
             LAS_int        = float(data['laser_shutter'][ind])
             #### include laser shots without ions
             if data['nions'][ind] == 0:
-                data_per_shot.append([tagevent,delay_calibrated,np.nan,np.nan,np.nan,FEL_int,LAS_int,np.nan,np.nan])
+                data_per_shot.append([ind,tagevent,delay_calibrated,np.nan,np.nan,np.nan,FEL_int,LAS_int,np.nan,np.nan])
             else:
                 for ind2 in range(data['nions'][ind]):
                     start         = data['nlistpos'][ind]
@@ -105,7 +111,7 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
                     ypos          = data['ypos'][start:end][ind2]
 
 
-                    dataunit=np.array([tagevent, delay_calibrated,tof,
+                    dataunit=np.array([ind,tagevent, delay_calibrated,tof,
                     params['RadialVelocityScaleCoefficient']*((xpos*0.001-params['jetx0_SI'])/realtof_SI- params['jetvx_SI']),
                     params['RadialVelocityScaleCoefficient']*((ypos*0.001-params['jety0_SI'])/realtof_SI- params['jetvy_SI']),
                     FEL_int,LAS_int,
@@ -115,8 +121,8 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
                     data_per_shot.append(dataunit)
 
         #### now combine the data from each laser shot into a large dataframe
-        self.data[key][dTypeOut] = pd.DataFrame(np.vstack(data_per_shot), columns=['tagID','delay','tof','vx','vy','FEL_int','LAS_int','x','y'])
-        
+        self.data[key][dTypeOut] = pd.DataFrame(np.vstack(data_per_shot), columns=['shot','tagID','delay','tof','vx','vy','FEL_int','LAS_int','x','y'])
+
         # Also reset dim indexes, to avoid inconsistencies later.
         # UGLY!!!
         self.data[key]['items'] = self.data[key][dTypeOut].keys()
