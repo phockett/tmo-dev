@@ -122,12 +122,19 @@ class VMI(tb.tmoDataBase):
         #                 self.eVMI['bgSub'][key] = hv.Image(self.eVMI['fullNorm'][key].data['z'] - self.eVMI['bgNorm'][key].data['z'])
 
 
-    def genVMIXmulti(self, filterOptions={}, **kwargs):
-        """Wrapper for genVMIX with multiple filter sets."""
+    def genVMIXmulti(self, filterOptions={}, resetImgStack=True, **kwargs):
+        """
+        Wrapper for genVMIX with multiple filter sets.
+        
+        If resetImgStack=True, replace existing imgStack with this run, otherwise append. (Note this may cause issues with plotting routines if images with different keyDims are stacked.)
+        """
 
         if filterOptions is not None:
             self.setFilter(filterOptions = filterOptions)
 
+        if resetImgStack:
+            self.imgStack = xr.Dataset()
+            
         # Run genVMIX for each filter set
         # Note bgSub = False to avoid recursive run in current form (v2), but should update this
         for item in self.filters.keys():
@@ -144,7 +151,8 @@ class VMI(tb.tmoDataBase):
     # 2nd go, stack to Xarrays for processing
     def genVMIX(self, norm=True, normType = 'shots', keys=None, filterOptions={},
                 bins = (np.arange(0, 1048.1, 1)-0.5,)*2, dim=['xc','yc'], name = 'imgStack',
-                bootstrap = False, lambdaP = 1.0, weights = None, density = None, **kwargs):
+                bootstrap = False, lambdaP = 1.0, weights = None, density = None, 
+                resetImgStack = False, **kwargs):
         """Generate VMI images from event data, very basic Xarray version.
 
         v2: allow for multi-level filter via genVMIXmulti wrapper, changed to super() for filter.
@@ -172,6 +180,10 @@ class VMI(tb.tmoDataBase):
 
         weights, density : options parameters for binning with Numpy.histogram2d, implemented for bootstrapping routine.
         https://numpy.org/devdocs/reference/generated/numpy.histogram2d.html#numpy.histogram2d
+        
+        resetImgStack : bool, default = False
+            If True, replace existing imgStack.
+            If False, append to existing imgStack. Note this may cause issues with plotting routines if images with different keyDims are stacked.
 
         Notes
         -----
@@ -288,7 +300,7 @@ class VMI(tb.tmoDataBase):
 
         # Try keeping multiple results sets in stack instead.
         # This is a little ugly, but working.
-        if not hasattr(self,'imgStack'):
+        if not hasattr(self,'imgStack') or resetImgStack:
             # self.imgStack = []  # May need .copy() here?  # v1, set as list
             self.imgStack = xr.Dataset()  # v2, set as xr.Dataset and append Xarrays to this
 
@@ -483,8 +495,8 @@ class VMI(tb.tmoDataBase):
                 return hvImg  # Otherwise return hv object.
 
 
-    def showImgSet(self, run = None, name = 'signal', clims = None, hist = True, dims = None,
-                    swapDims = None, returnImg = False, **restack):
+    def showImgSet(self, run = None, sumRuns = False, name = 'signal', clims = None, hist = True, dims = None,
+                    swapDims = None, sumDims = None, returnImg = False, **restack):
         """
         Crude wrapper for hv.HoloMap for images - basically as per showImg(), but full map.
 
@@ -493,6 +505,11 @@ class VMI(tb.tmoDataBase):
         - For plotting non-dimensional dims, pass as dims = [plot dims] and swapDims = [old dims].
         - Should add a dim check here for consistency.
         - name is currently not used for plotting, but should add this for flexibility - in some cases the cmap can be blown with multiple image sets on different scales.
+
+        Updates 09/11/23:
+        
+        - Added `sumRuns` option, set = True to sum over runs dim (default=False).
+        - Added `sumDims` option, pass list of additional dims to sum over (default=None).
 
         """
 
@@ -503,7 +520,7 @@ class VMI(tb.tmoDataBase):
         # Default to first run if not set
         # if run is None:
         #     run = self.imgStack['run'][0].data.item()  # Force to single item
-
+        
         if dims is None:
             # dims = self.data[run][name]['imgDims']  # Set dims
             dims = list(self.imgStack.dims)[-1:0:-1]  # Use dims from Xarray (note ordering, list(FrozenSortedDict) needs reversing!)
@@ -512,7 +529,29 @@ class VMI(tb.tmoDataBase):
             self._checkDims(dataType = 'imgStack', dimsCheck = dims, swapDims = swapDims)
 
         # Firstly set to an hv.Dataset
-        imgDS = hv.Dataset(self.restackVMIdataset(dims=dims,**restack))
+#         imgDS = hv.Dataset(self.restackVMIdataset(dims=dims,**restack))
+        
+        # 09/11/23 - allow for summing over other dims
+        imgRestack = self.restackVMIdataset(dims=dims,**restack)
+        
+        if self.verbose['main']:
+            print(f'Image restack dims: {imgRestack.dims}')
+            
+        if sumRuns:
+            if self.verbose['main']:
+                print('Summing over run')
+            
+            imgRestack = imgRestack.sum('run')
+            
+            
+        if sumDims is not None:
+            if self.verbose['main']:
+                print(f'Summing over additional sumDims={sumDims}')
+                
+            imgRestack = imgRestack.sum(sumDims)
+            
+        # Set to an hv.Dataset
+        imgDS = hv.Dataset(imgRestack)
 
         # Then a HoloMap of images
         hvImg = imgDS.to(hv.Image, kdims=dims).opts(colorbar=True)
