@@ -310,7 +310,7 @@ class VMI(tb.tmoDataBase):
 
     # TODO: want to chain this for image plotting, but first set which array to use!
     # TODO: options for which dataset to use, just hacked in duplicate code for now.
-    def restackVMIdataset(self, reduce = True, step = [5,5]):
+    def restackVMIdataset(self, reduce = True, step = [5,5], dims=None):
         # Restack image dataset to NxNxm Xarray for easy manipulation/plotting.
         # Return rather than set internally...?
 
@@ -320,7 +320,7 @@ class VMI(tb.tmoDataBase):
             #     self.downsample(step = step)
 
             # For ease-of-use, just always run this! Prevents issues when new imgStack items are added.
-            self.downsample(step = step)
+            self.downsample(step = step, dims=dims)
 
 
             # Restack, note transpose to force new dim ('type') to end.
@@ -512,7 +512,7 @@ class VMI(tb.tmoDataBase):
             self._checkDims(dataType = 'imgStack', dimsCheck = dims, swapDims = swapDims)
 
         # Firstly set to an hv.Dataset
-        imgDS = hv.Dataset(self.restackVMIdataset(**restack))
+        imgDS = hv.Dataset(self.restackVMIdataset(dims=dims,**restack))
 
         # Then a HoloMap of images
         hvImg = imgDS.to(hv.Image, kdims=dims).opts(colorbar=True)
