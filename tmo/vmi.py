@@ -496,7 +496,7 @@ class VMI(tb.tmoDataBase):
 
 
     def showImgSet(self, run = None, sumRuns = False, name = 'signal', clims = None, hist = True, dims = None,
-                    swapDims = None, sumDims = None, returnImg = False, **restack):
+                    swapDims = None, sumDims = None, returnImg = False, returnStack = False, fillNa = True, **restack):
         """
         Crude wrapper for hv.HoloMap for images - basically as per showImg(), but full map.
 
@@ -510,6 +510,29 @@ class VMI(tb.tmoDataBase):
         
         - Added `sumRuns` option, set = True to sum over runs dim (default=False).
         - Added `sumDims` option, pass list of additional dims to sum over (default=None).
+        
+        TODO/Debug:
+
+        - Some issues with plotting for large image stacks, seems to be issues with current code (probably sum and restack ordering), it crashes out with larger datasets...
+        - Also issues with cmapping, but maybe only for cases with NaNs? Or total counts per image cause issues?
+        - Quick alternative testing with hvplot (below) seems OK for same cases (so stack generation and return seems OK?), but clims not working?
+        
+                Code below from testing in sacla/notebooks/sacla_nov2023/edits/sacla_tmo-dev_demo_150723_091123.ipynb
+
+                # Set filters for ToFs...
+                data.setFilter(ToF_filters, reset = True)
+                dims = ['x','y']
+                bins = (np.arange(-0.05, 0.05, 0.0005),)*2
+                data.genVMIXmulti(dim=dims, bins = bins)
+                
+                # Plot - OK provided step is large enough, [5,5] or [10,10] seem OK.
+                data.showImgSet(dims=['x','y'], step=[10,10], sumRuns=True, clims=[1e-4,1e-2], hist=False)
+                
+                # Alternative plot - OK at native resolution?
+                testStack = data.imgStack.copy()
+                clims = [0, 0.1]
+                testStack = testStack.sum('run').to_array()
+                testStack.hvplot(x='x',y='y').redim.range(z=tuple(clims))  #.layout('variable').cols(2)
 
         """
 
@@ -543,6 +566,10 @@ class VMI(tb.tmoDataBase):
             
             imgRestack = imgRestack.sum('run')
             
+        if fillNa:
+            imgRestack = imgRestack.fillna(0)  # May need this to avoid cmap issues with NaNs at plot?
+            
+            
             
         if sumDims is not None:
             if self.verbose['main']:
@@ -571,3 +598,7 @@ class VMI(tb.tmoDataBase):
         # Is this necessary as an option?
         if returnImg:
             return hvImg  # Otherwise return hv object.
+        
+        # For debug!
+        if returnStack:
+            return imgRestack
