@@ -24,7 +24,8 @@ def setup(self):
 
 
 
-def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 'raw'):
+def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 'raw',
+               stackFileParts = True):
     """
     Convert raw SACLA data from h5 file to per-shot formatting, return as Pandas DataFrame.
 
@@ -41,7 +42,9 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
     keys : list, optional, default = None
         Datasets to process, defaults to self.runs['proc']
 
-
+    stackFileParts : bool, optional, default = True
+        Stack multipart filesets if True.
+        (Added 24/10/24, may give issues with older data format.)
 
     Notes
     ------
@@ -134,3 +137,49 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
         counts = self.data[key][dTypeOut].groupby('shot').count()['tagID']
         counts.name = 'counts'  #['tagID'].hist(bins=25)
         self.data[key][dTypeOut] = pd.merge(self.data[key][dTypeOut], counts, on='shot')
+        
+        
+    # UPDATE 25/10/24: stack file parts if desired
+    if stackFileParts:
+        # Get run per index
+        partIndex = np.array([[i, int(i)] for i in self.runs['proc']])
+        
+        # Select and stack
+        for run in self.runs['runList']:
+            runDict = {}
+            runList = []
+
+            # Parts
+            partIndexSub = partIndex[partIndex[:,1] == run,0]
+
+            for n,p in enumerate(partIndexSub):
+                runDict[p] = self.data[p][dTypeOut]
+
+                # Update with part & contiguous shot #
+                runDict[p]['part'] = p
+
+                if n>1:
+                    runDict[p]['shot'] = runDict[p]['shot'] + runDict[partIndexSub[n-1]].iloc[-1]['shot']
+
+                runList.append(runDict[p])
+
+            # dfPart = pd.DataFrame.from_dict(runDict)
+            
+            # Set to main structure with run index
+            # Q: output to separate dataset, e.g. 'stacked'?
+            self.data[run] = {dTypeOut: pd.concat(runList, ignore_index=True, axis=0)}
+            
+            # Full run metrics
+            # Metrics functionality only works for SLAC data
+            # NOW: get counts per shot and set in main dataset
+            # counts = self.data[run][dTypeOut].groupby('shot').count()['tagID']
+            # counts.name = 'counts'  #['tagID'].hist(bins=25)
+            # self.data[run][dTypeOut] = pd.merge(self.data[key][dTypeOut], counts, on='shot')
+            
+            # Copy other dict key vars...
+            for item in ['items','dims']:
+                self.data[run][item] = self.data[p][item]
+            
+        # Update default proc keys to stacked data keys
+        self.runs['proc'] = self.runs['runList']
+            
