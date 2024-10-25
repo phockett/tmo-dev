@@ -127,3 +127,10 @@ def calibration(self, params = None, keys = None, dTypeIn = 'scRaw', dTypeOut = 
         # UGLY!!!
         self.data[key]['items'] = self.data[key][dTypeOut].keys()
         self.data[key]['dims'] = {item:self.data[key][dTypeOut][item].shape for item in self.data[key]['raw'].keys()}
+        
+        ### UPDATE 24/10/24
+        # Metrics functionality only works for SLAC data
+        # NOW: get counts per shot and set in main dataset
+        counts = self.data[key][dTypeOut].groupby('shot').count()['tagID']
+        counts.name = 'counts'  #['tagID'].hist(bins=25)
+        self.data[key][dTypeOut] = pd.merge(self.data[key][dTypeOut], counts, on='shot')
