@@ -22,7 +22,7 @@ import holoviews as hv
 import numpy as np
 
 import sparse
-import types
+
 
 # class corr(tb.tmoDataBase, VMIproc):   # TypeError: Cannot create a consistent method resolution order (MRO) for bases tmoDataBase, VMIproc
 class corr(VMIproc):
@@ -114,12 +114,6 @@ class corr(VMIproc):
 
 
 
-    # 26/05/21
-    # FIXED:
-    # - Dim remapping hack, working for SACLA (x,y) data at least, but not totally general.
-    # - Lambda function passing improved, and bounds as binning params via remapping also (sort-of) working
-    # - Sparse output tested for a few cases, and mostly OK, except sometimes datatype messes up summation method later???? Don't understand this
-    # Still horrible hack-job here. Should fix data model & this function, likely with arb rebinning routine elsewhere?
     def setSparse(self, keys = None, dims = ['xc', 'yc', 'shot'], fillValues = 1,  sparseObjFlag = True,
                     bounds = {'xc':[0,1020], 'yc':[0,1020], 'shot':lambda x: [0, x.shape[0]]}):  #, shots = None):
         """
@@ -145,20 +139,6 @@ class corr(VMIproc):
             - If array, this must match the size of the coords found.
             - If str, pass another data dimension to use here, e.g. set as 'pv' to use hit amplitudes.
 
-        bounds : dict, default = {'xc':[0,1020], 'yc':[0,1020], 'shot':lambda x: [0, x.shape[0]]}
-            Set bounds for data > Sparse. Currently a bit hacky, but necessary for remapping data & setting Sparse size.
-            Can additionally pass a step (bin) size here, and use lambda functions.
-            Default for SLAC 2020/21 case, for SACLA data use bounds = {'x':[-0.05, 0.05, 0.0005], 'y':[-0.05, 0.05, 0.0005], 'shot':lambda x: [x.min(), x.max()]}.
-
-        Notes
-        -----
-
-        - This is currently rather hacky, and replicates some other functionality in a slightly different form, ugh.
-        - Sparse requires indicies into data....
-           - For dims with +ve int format data this works directly.
-           - For other dims need to rebin or map to indexes, which is currently very crudely handled here, but should make use of better code elsewhere (hist/index mapping routines).
-
-
         """
 
         # Default to all datasets
@@ -170,64 +150,23 @@ class corr(VMIproc):
 
             # Get data for each specified dim, sort and pass to Sparse
             for dim in dims:
+                if dim is not 'shot':
+                    data[dim] = self.getDataDict(dim, key, returnType = 'data')
 
-    #             if dim is not 'shot':
-                data[dim] = self.getDataDict(dim, key, returnType = 'data').copy()  # Copy here for case with remapping!
-
-                if isinstance(bounds[dim], types.LambdaType):  # Get bounds from data if set.  TODO: add case for auto/default dims - needs to be set below too.
-                    bounds[dim] = bounds[dim](data[dim])
-
-
-                # Set mask on out-of-range data. This will otherwise throw a coord error on conversion to sparse.
-                # This is general here, but usually will just be filtering out -9999 no hit value.
-                # Note mask is cumulative to enforce same data selection per dim
-                if 'idxMask' in data.keys():
-                    data['idxMask'] *= (data[dim] >= bounds[dim][0]) & (data[dim] <= bounds[dim][1])
-                else:
-                    data['idxMask'] = (data[dim] >= bounds[dim][0]) & (data[dim] <= bounds[dim][1])
+                    # Set mask on out-of-range data. This will otherwise throw a coord error on conversion to sparse.
+                    # This is general here, but usually will just be filtering out -9999 no hit value.
+                    # Note mask is cumulative to enforce same data selection per dim
+                    if 'idxMask' in data.keys():
+                        data['idxMask'] *= (data[dim] >= bounds[dim][0]) & (data[dim] <= bounds[dim][1])
+                    else:
+                        data['idxMask'] = (data[dim] >= bounds[dim][0]) & (data[dim] <= bounds[dim][1])
 
             # Set shot coord, assumed to be all shots and match shape of dims[0] array
-    #***        data['shot'] = np.tile(np.arange(0, data[dims[0]].shape[0])[:, np.newaxis], (1, data[dims[0]].shape[1]))  # Assumes shot dim - ADD IF HERE
-
+            data['shot'] = np.tile(np.arange(0, data[dims[0]].shape[0])[:, np.newaxis], (1, data[dims[0]].shape[1]))
 
             # Convert to sparse
-    #         coords = [data[dim][data['idxMask']] for dim in dims]  # Set list of arrays with masking to pass as coords
+            coords = [data[dim][data['idxMask']] for dim in dims]  # Set list of arrays with masking to pass as coords
             # TODO: this will fail for 1D vs. 2D data...? Need to check dims first?
-
-            # Coords with remapping - this is required for general case (non-int, -ve), since these should be indexes
-            # This is currently VERY UGLY - should be a better way?!?!?!  Fastremap lib maybe? https://pypi.org/project/fastremap/
-            # See also https://stackoverflow.com/questions/3403973/fast-replacement-of-values-in-a-numpy-array
-            # Maybe better just to hist each dimension here (vs. shot)? This is essentially what this code is doing in any case!
-            # Numpy digitise? https://numpy.org/doc/stable/reference/generated/numpy.digitize.html#numpy.digitize
-            coords = []
-            dimMap = []
-            for dim, val in bounds.items():
-                testData = data[dim][data['idxMask']]
-                inputBins = np.unique(testData)  # Set list of input vals
-
-                if testData.dtype is not int:
-
-                    # Check >= 0
-                    if testData.min() < 0:
-                        testData += np.abs(val[0])  # Remap from bounds min value
-
-                    # Check int & remap if not
-    #                 if testData.dtype is not int:
-                        # Set order of magnitude - either from raw data or as effective binning step size
-            #         testData.diff()[testData.diff() > 0].min()  # Raw data, OK but might be too small
-
-                    # FUCKING SHIT CODE AGAIN
-                    # NEED TO CHECK FOR FRACTIONAL VALUES HERE TO DETERMINE WHETHER TO REMAP OR LEAVE ALONE.
-                    #****************************************************************
-                    if dim in ['x','y']:
-                        mag = np.abs(np.floor(np.log10(val[2])))
-                        testData = ((testData* 10**mag).round()).astype(int)  # Round to nearest int (Pandas) and recast.
-                    else:
-                        testData = testData.astype(int)
-
-                coords.append(testData)  # Set as coords indexers
-                dimMap.append([inputBins, np.unique(testData)])  # Set also mapping for testing
-
 
             # Set fillValues from array if required
             if isinstance(fillValues, str):
@@ -235,18 +174,11 @@ class corr(VMIproc):
 
             # if 'shot' in bounds.keys():
                 # bounds['shot'] = bounds['shot'](data[dims[0]])  # Set shots assuming lambda fn: doesn't make sense to do this unless more control is given?
-    #         if 'shot' in dims:
-    # #             bounds['shot'] = [0, data[dims[0]].shape[0]]  # Assume # shots == dim[0] rows
-    #             bounds['shot'] = bounds['shot'](data['shot'])  # Get from dim with lambda fn.
+            if 'shot' in dims:
+                bounds['shot'] = [0, data[dims[0]].shape[0]]  # Assume # shots == dim[0] rows
 
             # Set coords (shape) of sparse array - note this can throw errors if there are out-of-bounds coords (no clipping)
-    #***        ndShape = tuple(bounds[k][1] for k in bounds.keys())  # Directly from size - ASSUMES INT DIM BOUNDS of correct size!!!
-    #         ndShape =  #ARGAGRGAHGRHAGHR FOR FUCKS SAKE - what is the native binning here? Does it matter? WTF
-
-    #         ndShape = tuple(item[1].size for item in dimMap)  # Set using remapped coords - FAILS IF DIM SIZE != FULL COORD SET OBVIOUSLY, SHOULD FORCE THIS ABOVE
-            ndShape = tuple(item[1].max()+1 for item in dimMap)  # Set using remapped coords
-            print(ndShape)
-
+            ndShape = tuple(bounds[k][1] for k in bounds.keys())  # Directly from size
             # ndShape = tuple((bounds[k][1] - bounds[k][0] + 1) for k in bounds.keys())  # Set size as bounded interval? +1 to ensure coords span all values OK.
             # ndShape = tuple(2*np.round((bounds[k][1] - bounds[k][0] +1)/2) for k in bounds.keys())  # Set size as bounded interval? Round to nearest EVEN int
             # ndShape = tuple(2*np.rint((bounds[k][1] - bounds[k][0] +1)/2).astype(np.int) for k in bounds.keys())  # Set size as bounded interval? Round to nearest EVEN int - may cause issues later!
