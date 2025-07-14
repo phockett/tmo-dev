@@ -99,7 +99,8 @@ class tmoDataBase():
     # Setup optional local imports
     # from .sacla import sacla  # This method DOESN"T work for self.fun(), should write as full function calls, or proper subclass, instead?
                                 # Could also monkeypatch at __init__, but probably not a good idea.
-    from .sacla.sacla import setup, calibration  # Bind directly at class instantiation. This works.
+    from .sacla.sacla import setup, calibration  # Bind directly at class instantiation. This works if importing from tmo base pacakge
+    # from sacla.sacla import setup, calibration  # Bind directly at class instantiation. This works if importing locally.
 
 
     def __init__(self, fileBase = None, ext = 'h5', runList = None, fileSchema='aq{N:03.0f}',
@@ -129,9 +130,18 @@ class tmoDataBase():
                      'runList':runList,
                      # 'files': {N:Path(fileBase, f'run{N}{fileSchema}.{ext}') for N in runList}  # For SLAC TMO runs
                      # 'files': {N:Path(fileBase, f'aq{N:03.0f}{fileSchema}.{ext}') for N in runList} # For SACLA runs
-                     'files': {N:Path(fileBase, fileSchema.format(N=N) + f'.{ext}') for N in runList}  # With generic format string set
+                     #'files': {N:Path(fileBase, fileSchema.format(N=N) + f'.{ext}') for N in runList}  # With generic format string set
                      # 'files': self.getFiles(ext=ext, runList=runList, fileSchema=fileSchema, fileList=fileList)
+                     
+                     # July 2023 - set for updated scheme, with subdirs per run
+                     # 'files':{N:list(Path(fileBase, fileSchema.format(N=N)).rglob(f"**/*.{ext}")) for N in runList}
+                     'fileParts':{},
+                     'files':{}
+                     
                      }
+        
+        # 14/07/23 - getFiles with method
+        self.getFiles(ext=ext, fileSchema=fileSchema)
 
         # Set default data dicts
         self.dTypes = ['raw','metrics']
@@ -169,6 +179,37 @@ class tmoDataBase():
     #
     #  for N in runList:
     #     [print(item) for item in fileList if item.endswith('aq{0:03.0f}.{1}'.format(N,ext))]
+    
+    
+    # def getFiles(self, ext='h5', runList = None, fileSchema=None, fileList=None):
+    def getFiles(self, ext='h5', fileSchema=None):
+        """
+        Quick attempt based on basic dict routine.
+        Allows (crudely) for multi-part Sacla data July 2023
+        """
+        
+        # July 2023 - set for updated scheme, with subdirs per run
+        # runs['fileParts'] = {N:list(Path(fileBase, fileSchema.format(N=N)).rglob(f"**/*.{ext}")) for N in runList}   # Reformat existing style to list per run - this gives issues later however.
+
+        self.runs['files'] = {}
+        
+        for N in self.runs['runList']:
+            fileList = list(Path(self.runs['fileBase'], fileSchema.format(N=N)).rglob(f"**/*.{ext}"))
+            self.runs['fileParts'][N] = fileList
+            
+            if len(fileList) == 1:
+                self.runs['files'][N] = fileList[0]
+            else:
+                # Flatten fileList for use with existing methods.
+                # NOTE this is likely problematic - no concat for parts here
+
+                # For HDF5 Can try:
+                # (a) link style (https://docs.h5py.org/en/stable/high/group.html?highlight=external#external-links)
+                # (b) virtual dataset (https://docs.h5py.org/en/stable/vds.html)
+                # (c) convert to numpy and then concat (difficult to patch in current tmo routines).
+                
+                self.runs['files'].update({N + 0.01*(m+1):item for m,item in enumerate(self.runs['fileParts'][N])})
+            
 
     def readFiles(self, keyDim = None, runMetrics = True):
         """
