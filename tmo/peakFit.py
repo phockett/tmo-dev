@@ -20,12 +20,24 @@ from holoviews import opts
 import hvplot.xarray
 
 import lmfit
-import xarray_lmfit
 
 # Logging
 from loguru import logger
 
+# xrlmfit - optional as may require xr update
+# If flag is false basic fitting with wrapper implemented
+try:
+    import xarray_lmfit
+    xrlmfitFlag = True
+    logger.info("Using `xarray_lmfit` wrapper.")
 
+except ImportError: 
+    xrlmfitFlag = False
+    logger.info("Missing `xarray_lmfit`, using bare lmfit routines.")
+    
+# xrlmfitFlag = False   # Set False to test bare functions.
+    
+    
 class peakFit:
     """
     Class for peak finding & fitting, aims to automate as much as possible.
@@ -259,33 +271,49 @@ class peakFit:
         
         NOTE: consider passing **kwargs here, e.g. can set `guess=True` for xlm.modelfit param guess.
         
+        UPDATE 23/07/25: added case for no xarray_lmfit wrapper, but to make both methods compatible is more work than just not using wrapper full stop! Currently have pushed data to XRs in either case.
+        
         """
         
-        logger.info("Running lmfit routine...")
         
-        fitDS = self.data.xlm.modelfit(dim, model=self.model, params=self.params)
-                    # NOTE: can also set guess=True to set model params inline here
-                    # Will leave as-is currently, since already coded up params part in model routine.
-        self.fitResults = fitDS
-        self.fitParams = fitDS['modelfit_coefficients']
-        
-#         data.xlm.modelfit('x', model=peaks2.model, guess=True)
-        
-        # Test components - don't seem to be output automatically...
-        # NOTE that Fit Results includes eval_components with fitted params.
-        
-        # comps = out.eval_components(x=x)
+        if xrlmfitFlag:
+            logger.info("Running lmfit routine with XRlmfit wrapper...")
+            fitDS = self.data.xlm.modelfit(dim, model=self.model, params=self.params)
+                        # NOTE: can also set guess=True to set model params inline here
+                        # Will leave as-is currently, since already coded up params part in model routine.
+            self.fitDS = fitDS
+            self.fitParams = fitDS['modelfit_coefficients']
+            self.bestFit = fitDS['modelfit_best_fit']
 
-        # Not sure how to cleanly pull this...?
-        lmfitResult = fitDS['modelfit_results'].data.tolist()
+    #         data.xlm.modelfit('x', model=peaks2.model, guess=True)
+
+            # Test components - don't seem to be output automatically...
+            # NOTE that Fit Results includes eval_components with fitted params.
+            # Not sure how to cleanly pull this...?
+            lmfitResult = fitDS['modelfit_results'].data.tolist()
+        
+        
+        # Basic lmfit run without XR wrapper -- may need some work.
+        else:
+            logger.info("Running lmfit routine...")
+            lmfitResult = self.model.fit(self.data, x=self.data[dim], params=self.params)
+            
+            self.fitDS = "Not available without xrlmfit wrapper."
+            self.fitParams = lmfitResult.params
+            self.bestFit = xr.DataArray(lmfitResult.best_fit, coords={dim:self.data[dim]}, name='best fit')
+    
+    
+        self.fitResults = lmfitResult
+        
         compDict = lmfitResult.eval_components(x=self.data[dim])  #.values)
 
         # need to reformat for XR...
         compDictReformat = {k:(dim,v) for k,v in compDict.items()}
         compXR = xr.Dataset(compDictReformat, coords={'x':self.data[dim]})
-#         compXR.name = 'Fit components'
+    #         compXR.name = 'Fit components'
 
         self.fitComponents = compXR
+    
     
         if plotFit:
             self.plotFit()
@@ -294,13 +322,13 @@ class peakFit:
             self.fitDetails()
         
 
-    def fitDetails(self):
-        """
-        Display lmfit results details.
-        """
+#     def fitDetails(self):
+#         """
+#         Display lmfit results details.
+#         """
         
-        # Not sure how to cleanly pull this...?
-        return self.fitResults['modelfit_results'].data.tolist()
+#         # Not sure how to cleanly pull this...?
+#         return self.fitResults['modelfit_results'].data.tolist()
     
     
     
@@ -323,8 +351,11 @@ class peakFit:
         Use HVplot to plot results from Xarrays.
         """
         
-        plotOut = self.fitResults['modelfit_best_fit'].hvplot(label='fit', title='Fit results') \
-                    * self.fitResults['modelfit_data'].hvplot(label='data', alpha=0.7)
+        # plotOut = self.fitResults['modelfit_best_fit'].hvplot(label='fit', title='Fit results') \
+        #             * self.fitResults['modelfit_data'].hvplot(label='data', alpha=0.7)
+        
+        plotOut = self.bestFit.hvplot(label='fit', title='Fit results') \
+            * self.data.hvplot(label='data', alpha=0.7)
         
         if plotComponents:
             plotOut *= self.fitComponents.hvplot(line_dash='dashed', group_label='components') 
