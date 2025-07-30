@@ -3,6 +3,9 @@ Class and method dev for SLAC TMO data (Run 18) - VMI & image handling class.
 
 Preprocessed data (h5py IO) + further processing + Holoviews.
 
+
+14/07/25 v0.0.1-vmi-img, adding file IO + mods for use with image-based VMI datasets (previously assumed hit-based raw data)
+
 20/11/20 v0.0.1
 
 Paul Hockett
@@ -26,9 +29,16 @@ class VMI(tb.tmoDataBase):
 
     from .utils import _checkDims
 
+    from .imgIO import getFilesImg, readImgFiles
+
     def __init__(self, **kwargs):
         # Run __init__ from base class
         super().__init__(**kwargs)
+
+        # 14/07/25 - patch for image-based data
+        # TO CONSIDER: push some of this to base class?
+        # if dataType == 'img':
+
 
         # Filter update - add multilevel filtering here.
         # SHOULD propagate back to base class, but keep here for now as they're only applied to image processing.

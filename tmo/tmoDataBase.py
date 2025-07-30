@@ -77,6 +77,8 @@ class tmoDataBase():
 
     Reads h5py files & plots various properties & correlations using Holoviews.
 
+    14/07/25 v0.0.1-vmi-img, adding file IO + mods for use with image-based VMI datasets (previously assumed hit-based raw data)
+
     13/05/21 v0.0.1-sacla, updates + mods for SACLA data.
 
     18/11/20 v0.0.1
@@ -103,7 +105,7 @@ class tmoDataBase():
     # from sacla.sacla import setup, calibration  # Bind directly at class instantiation. This works if importing locally.
 
 
-    def __init__(self, fileBase = None, ext = 'h5', runList = None, fileSchema='aq{N:03.0f}',
+    def __init__(self, fileBase = None, ext = 'h5', runList = None, fileSchema='aq{N:03.0f}', dataType='hit',
                  fileList=None, verbose = 1, accelerator = 'sacla'):
         """
         Files to read defined by:
@@ -115,7 +117,7 @@ class tmoDataBase():
             - For SLAC TMO, e.g. 'run{N}_preproc_elecv2', where the tail may change.
             - For SACLA, 'aq{N:03.0f}'
             - NOTE this has changed since original version. Dir scan + pattern matching should also be implemented here.
-
+        - dataType: 'hit' or 'img' to define raw data types and load appropriate methods (added July 2025)
         """
 
 
@@ -136,12 +138,26 @@ class tmoDataBase():
                      # July 2023 - set for updated scheme, with subdirs per run
                      # 'files':{N:list(Path(fileBase, fileSchema.format(N=N)).rglob(f"**/*.{ext}")) for N in runList}
                      'fileParts':{},
-                     'files':{}
+                     'files':{},
                      
+                     # July 2025 - adding options for different datatypes, img or hit based datasets.
+                     'dataType':dataType,
+                     'fileSchema':fileSchema,
                      }
         
+        # 14/07/25 - added dataType var for 'hit' or 'img' type file IO
+        # print(dataType)
         # 14/07/23 - getFiles with method
-        self.getFiles(ext=ext, fileSchema=fileSchema)
+        self.getFiles(ext=ext, fileSchema=fileSchema, dataType=dataType)
+        
+        # if dataType=='hit':
+        #     # 14/07/23 - getFiles with method
+        #     self.getFiles(ext=ext, fileSchema=fileSchema)
+
+        # elif dataType=='img':
+        #     print("Importing images from file...")
+        #     self._getFilesImg(ext=ext, fileSchema=fileSchema)
+
 
         # Set default data dicts
         self.dTypes = ['raw','metrics']
@@ -180,9 +196,37 @@ class tmoDataBase():
     #  for N in runList:
     #     [print(item) for item in fileList if item.endswith('aq{0:03.0f}.{1}'.format(N,ext))]
     
-    
+    def getFiles(self, ext='h5', fileSchema=None, dataType=None):
+        """
+        Basic file IO wrapper, use methods according to dataType.
+
+        14/07/25: added to support 'hit' or 'img' data. Still need to add dir scanner to pull filenames rather than preset with schema.
+
+        """
+        if fileSchema is None:
+            # Scan dir for filenames instead of preset schema.
+            print("getFiles() without fileSchema not yet supported.")
+            return 1
+
+        if self.runs['runList'] is None:
+            # Scan dir for filenames instead of preset schema.
+            print("getFiles() without runList not yet supported.")
+            return 1
+
+        if dataType=='hit':
+            # 14/07/23 - getFiles with method
+            self.getFilesHit(ext=ext, fileSchema=fileSchema)
+
+        elif dataType=='img':
+            # print("Importing images from file...")
+            self.getFilesImg(ext=ext, fileSchema=fileSchema)
+
+        else:
+            print(f"DataType {dataType} not recognised, skipping file readers.")
+
+
     # def getFiles(self, ext='h5', runList = None, fileSchema=None, fileList=None):
-    def getFiles(self, ext='h5', fileSchema=None):
+    def getFilesHit(self, ext='h5', fileSchema=None):
         """
         Quick attempt based on basic dict routine.
         Allows (crudely) for multi-part Sacla data July 2023
