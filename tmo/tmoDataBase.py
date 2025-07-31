@@ -171,7 +171,11 @@ class tmoDataBase():
         # Additional setup for SACLA data
         # Assume from filenames, or via additional flag.
         # TODO: should just generalise for all cases, force by accelerator name.
-        if fileSchema.startswith('aq') or (accelerator=='sacla'):
+        # 31/07/25: added dict case for VMI image type config
+        if isinstance(fileSchema, dict):
+            pass
+        
+        elif fileSchema.startswith('aq') or (accelerator=='sacla'):
             self.accelerator = 'sacla'
             print(f"Setting additional params for {self.accelerator}")
 
