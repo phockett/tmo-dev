@@ -570,6 +570,11 @@ class VMI(tb.tmoDataBase):
         if self.verbose['main']:
             print(f'Image restack dims: {imgRestack.dims}')
             
+        # 31/07/25 implement run selection
+        if run is not None:
+            print(f'Subselection run = {run}')
+            imgRestack = imgRestack.sel(run=run)
+            
         if sumRuns:
             if self.verbose['main']:
                 print('Summing over run')
