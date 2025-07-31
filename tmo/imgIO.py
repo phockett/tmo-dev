@@ -18,6 +18,7 @@ import numpy as np
 import xarray as xr
 import skimage as ski
 import skimage.io as io
+import scipy
 
 def getFilesImg(self, ext='png', fileSchema=None):
     """
@@ -68,9 +69,29 @@ def getFilesImg(self, ext='png', fileSchema=None):
                 self.runs['files'].update({f'{m+1}.{N}.{k}':item for m,item in enumerate(self.runs['fileParts'][N][k])})
 
 
-def readImgFiles(self, keyDims = ['run','X','Y'], subtractBG = False):
+def readImgFiles(self, keyDims = ['run','X','Y'], subtract = None,
+                    crop = None, rotation = None):
     """
     Read image files.
+
+    keyDims : list
+        Dims to use for output data, default case = ['run','X','Y']
+        
+    crop : dict, optional, default = None
+        Dictionary of params to use for image crop if supplied.
+        Supply with dict values: {'XC':,'YC':,'W':,'H':}
+        This just uses raw array values (i.e. pixel values from raw files).
+        
+    rotation : float, optional, default = None
+        Apply rotation correction (degrees) to image stack using scipy.ndimage.rotate.
+        Note this currently assumes axes=(2, 1).
+        
+    subtract : list, optional, defualt = None
+        Apply subtraction(s) to images.
+        This will subtract all list items from the initial item.
+        E.g. subtract = ['signal','bg'] will give signal-bg.
+        Subtracted results will be set to 'subtracted' in the output image stack.
+
 
     For 'hit' data use base class readFiles().
     
@@ -115,6 +136,31 @@ def readImgFiles(self, keyDims = ['run','X','Y'], subtractBG = False):
 
             imgCycle = ski.util.img_as_float(imgsIn[fileType].concatenate())
     
+            # Crop
+            if crop is not None:
+                imgCycle = imgCycle[:,crop['XC']-crop['W']:crop['XC']+crop['W'],crop['YC']-crop['H']:crop['YC']+crop['H']]
+                
+            # Rotate if set
+            if rotation is not None:
+            #     tform = ski.transform.EuclideanTransform(rotation=imgRot*np.pi/180)
+            #     imgCycle
+
+                # *** Per https://scikit-image.org/docs/stable/user_guide/geometrical_transform.html#projective-transforms-homographies
+                # Runs, but not sure how to define rotation axis here? Seems to rotate ALL axes?
+                # tform = ski.transform.EuclideanTransform(rotation=imgRot*np.pi/180)
+                # tf_img = ski.transform.warp(imgCycle, tform.inverse)
+
+                # *** Basic version per https://scikit-image.org/docs/stable/api/skimage.transform.html#skimage.transform.rotate
+                # Also not clear if this rotates as expected, although seems closer to expectations!
+                # Note this preserves array size by default (crops)
+                # tf_img = ski.transform.rotate(imgCycle, imgRot)  #*np.pi/180,)
+
+                #  *** Use scipy!
+                #  Scipy: See https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.rotate.html#rotate
+                #  Note this changes to array size by default, unless reshape=False is passed
+                # TODO: futher tests here!
+                imgCycle = scipy.ndimage.rotate(imgCycle, rotation, axes=(2, 1), reshape=False)
+    
             # Set to output Xarray datastructure
             # imgT = xr.DataArray(imgCycle, dims=['cycle','X','Y'])
             # Q: stack initially by t or cycle? Cycle seems easier...
@@ -122,7 +168,8 @@ def readImgFiles(self, keyDims = ['run','X','Y'], subtractBG = False):
             imgT = xr.DataArray(imgCycle, coords=coords)
 
             imgT.name = k
-
+            
+#             imgT.attrs['files'] = fileList
             # imgT.attrs['files'] = {'Signal':imageS.files,
             #                     'Background':imageB.files}
 
@@ -138,10 +185,14 @@ def readImgFiles(self, keyDims = ['run','X','Y'], subtractBG = False):
             if fileType not in imgStack.keys():
                 # XR dataset with (cycle,X,Y) array per t
                 imgStack[fileType] = xr.Dataset({k:imgT})
+                # Force attr - dropped on assignment otherwise
+                imgStack[fileType].attrs['files'] = {k:fileList}
                 
             else:
                 imgStack[fileType] = imgStack[fileType].assign({k:imgT})
+                imgStack[fileType].attrs['files'][k] = fileList
                 
+
     
 #             imgStack[fileType] = imgStack.copy() 
             
@@ -151,6 +202,21 @@ def readImgFiles(self, keyDims = ['run','X','Y'], subtractBG = False):
         imgDS[k] = imgStack[k].to_array()
     
     imgDS = imgDS.rename({'variable':'t'})
+    
+    # Additional attrs
+    imgDS.attrs['crop'] = crop
+    imgDS.attrs['rotation'] = rotation
+    
+    
     self.imgStack = imgDS
     
     print("Assigned images to self.imgStack.")
+    
+    if subtract is not None:
+        baseImg = imgDS[subtract[0]]
+        
+        for k in subtract[1:]:
+            baseImg = baseImg - imgDS[k]
+        
+        self.imgStack['subtracted'] = baseImg
+        print("Assigned subtracted images to self.imgStack['subtracted'].")
