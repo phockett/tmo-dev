@@ -56,7 +56,7 @@ class peakFit:
             self.data.name = 'Intensity'
             
         if peaks is None:            
-            self.findPeaks()
+            self.findPeaks(**kwargs)
             
         if quickFit:
             self.quickFit(**kwargs)
@@ -77,7 +77,7 @@ class peakFit:
         
     
     def findPeaks(self, data = None, thres=None, thresPC=0.5, prominence = 0.1, width = 5, 
-                  plotPeaks = True):
+                  plotPeaks = True, **kwargs):
         """
         Use scipy.signal.find_peaks to get peak positions.
         
