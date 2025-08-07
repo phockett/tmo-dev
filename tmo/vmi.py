@@ -450,7 +450,9 @@ class VMI(tb.tmoDataBase):
 #************* Plotting
 
     def showImg(self, run = None, name = 'signal', clims = None, hist = True, dims = None, swapDims = None,
-                log10 = False, returnImg = False, backend = 'hv'):
+                log10 = False, returnImg = False, backend = 'hv', 
+                reduce = True, reduceDims = None,
+                sumDims=None, selDims={}):
         """
         Crude wrapper for hv.Image (or native Xarray plotter)
 
@@ -461,6 +463,12 @@ class VMI(tb.tmoDataBase):
         - For plotting non-dimensional dims, pass as dims = [plot dims] and swapDims = [old dims].
         - hv backend doesn't colourmap well with log10 setting at the moment.
         - hv backend always uses reduced resolution image stack (TODO: add options here).
+        - 31/07/25 added:
+            - selDims, sumDims passed to XR selector for multi-dim cases.
+            - reduce, reduceDims passed to self.restackVMIdataset() to handle ND cases better.
+                    reduceDims defaults to image dims if not set.
+            - NOTE: now working for ND case BUT need to either sum or sel on additional dims.
+                    TODO: automatic dim handling for ease of use here!
 
         """
 
@@ -475,6 +483,8 @@ class VMI(tb.tmoDataBase):
         else:
             self._checkDims(dataType = 'imgStack', dimsCheck = dims, swapDims = swapDims)
 
+        if reduceDims is None:
+            reduceDims = dims
 
         if backend == 'xr':
             if log10:
@@ -483,11 +493,22 @@ class VMI(tb.tmoDataBase):
                 self.imgStack[name].sel(run=run).plot.imshow()
 
         if backend == 'hv':
+#             if log10:
+#                 # log10 option - currently OK for .plot.imshow(), but doesn't cmap properly for hv if Nan/inf - need to check options here.
+#                 hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name, **kwargs).pipe(np.log10), kdims = dims).opts(aspect='square')
+#             else:
+#                 hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name, **kwargs), kdims = dims).opts(aspect='square')
+
+            plotData = self.restackVMIdataset(reduce=reduce, dims=reduceDims).sel(run=run, name=name, **selDims)
+            
+            if sumDims is not None:
+                plotData = plotData.sum(*sumDims)
+
             if log10:
                 # log10 option - currently OK for .plot.imshow(), but doesn't cmap properly for hv if Nan/inf - need to check options here.
-                hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name).pipe(np.log10), kdims = dims).opts(aspect='square')
+                hvImg = hv.Image(plotData.pipe(np.log10), kdims = dims).opts(aspect='square')
             else:
-                hvImg = hv.Image(self.restackVMIdataset().sel(run=run, name=name), kdims = dims).opts(aspect='square')
+                hvImg = hv.Image(plotData, kdims = dims).opts(aspect='square')
 
             if clims is not None:
 
